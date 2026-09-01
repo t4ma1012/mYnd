@@ -26,6 +26,21 @@ const firebaseConfig = {
   window.gpxAuth = auth;
   window.gpxDb = db;
 
+  // Enable offline persistence for Firestore (compat API)
+  if (typeof db.enablePersistence === 'function') {
+    db.enablePersistence({ synchronizeTabs: true })
+      .catch((error) => {
+        const errMsg = error && error.message ? error.message : String(error);
+        if (errMsg.includes('FAILED_PRECONDITION')) {
+          console.warn('[Firestore] Offline persistence không thể bật trên tab/trình duyệt này (có thể nhiều tab mở), sẽ sử dụng cache mặc định.');
+        } else if (errMsg.includes('UNIMPLEMENTED')) {
+          console.warn('[Firestore] Trình duyệt không hỗ trợ offline persistence.');
+        } else {
+          console.warn('[Firestore] Không thể bật offline persistence:', errMsg);
+        }
+      });
+  }
+
   if (typeof auth.setPersistence === 'function') {
     auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
       .catch((error) => {

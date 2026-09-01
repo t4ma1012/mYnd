@@ -74,18 +74,33 @@ window.Store = (function(){
     }catch(e){}
   }
 
-  // Lấy dữ liệu: thử Firestore trước (nếu sẵn sàng), fallback localStorage.
+  // Lấy dữ liệu: thử Firestore với timeout 2.5s, nếu hết thời gian fallback localStorage ngay.
   async function storageGetRaw(key){
     try{ await readyPromise; }catch(e){}
     if(db && uid){
       try{
         const ref = docRef(key);
         if(!ref) return readLocalValue(key);
-        const snap = await ref.get();
-        if(snap.exists && snap.data().value!=null){
-          const val = snap.data().value;
-          writeLocalValue(key, val);
-          return val;
+        
+        // Tạo promise với timeout: nếu quá 2500ms sẽ reject
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Timeout firestore get after 2500ms')), 2500);
+        });
+        
+        // Race between Firestore get và timeout
+        try {
+          const snap = await Promise.race([ref.get(), timeoutPromise]);
+          if(snap.exists && snap.data().value!=null){
+            const val = snap.data().value;
+            writeLocalValue(key, val);
+            return val;
+          }
+        } catch(timeoutErr) {
+          // Nếu timeout thì không log error, chỉ dùng localStorage ngay
+          if(timeoutErr.message.includes('Timeout')) {
+            return readLocalValue(key);
+          }
+          throw timeoutErr;
         }
       }catch(e){ console.warn('[Store] Không tải được từ Firestore, dùng dữ liệu máy này:', e.message); }
     }
