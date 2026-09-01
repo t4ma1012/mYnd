@@ -77,8 +77,15 @@ html.gpx-authed body > *:not([data-gpx-chrome]){
   background:linear-gradient(160deg, var(--gpx-navy-900), var(--gpx-blue-700));
   font-family:'Inter',sans-serif; padding:20px;
 }
-html.gpx-logged-out #gpx-authgate{ display:none; }
+html.gpx-logged-out #gpx-authgate{ display:flex; }
 #gpx-authgate.hidden{display:none;}
+
+/* ---------- INFRA ERROR OVERLAY ---------- */
+#gpx-infra-error{
+  position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(160deg, #7d0c0c, #a92c1f);
+  font-family:'Inter',sans-serif; padding:20px;
+}
 .gpx-login-card{
   width:340px; max-width:100%; background:var(--gpx-surface); border-radius:20px; padding:28px 26px;
   box-shadow:0 30px 70px rgba(0,0,0,0.35); text-align:center;

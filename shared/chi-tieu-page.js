@@ -288,26 +288,82 @@
     showToast('🔄 Đã bắt đầu kỳ theo dõi mới.');
   }
 
-  function renderFoodCard(){
-    const body = document.getElementById('foodCardBody');
+  let foodHeatmapMonth = new Date();
+
+  function buildFoodHeatmapHtml(displayMonth) {
+    const dailyBudget = getDailyFoodBudget();
+    const todayKey = todayISO();
+    const displayMonthKey = monthKeyOf(displayMonth);
+    const [displayYear, displayMonthNum] = displayMonthKey.split('-').map(Number);
+    const totalDays = daysInMonth(displayYear, displayMonthNum - 1);
+    const firstDayOfMonth = new Date(displayYear, displayMonthNum - 1, 1).getDay();
+    
+    // Build calendar grid
+    let cellsHtml = '';
+    
+    // Day headers (CN-T7)
+    const dayHeaders = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+    dayHeaders.forEach(header => {
+      cellsHtml += `<div class="heatmap-col-header">${header}</div>`;
+    });
+    
+    // Empty cells before first day
+    for (let i = 0; i < firstDayOfMonth; i++) {
+      cellsHtml += `<div class="heatmap-cell empty"></div>`;
+    }
+    
+    // Days of month
+    for (let day = 1; day <= totalDays; day++) {
+      const dayISO = `${displayYear}-${pad(displayMonthNum)}-${pad(day)}`;
+      const spentForDay = data.transactions.filter(t => t.type === 'expense' && t.category === 'an_uong' && t.date === dayISO)
+        .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+      
+      const isFuture = dayISO > todayKey;
+      const isToday = dayISO === todayKey;
+      
+      let cellClass = 'heatmap-cell';
+      let cellContent = String(day);
+      let tooltip = '';
+      
+      if (isFuture) {
+        cellClass += ' future';
+      } else if (spentForDay === 0) {
+        cellClass += ' zero';
+      } else if (spentForDay <= dailyBudget) {
+        const ratio = spentForDay / dailyBudget;
+        cellClass += ratio > 0.7 ? ' ok-high' : ' ok';
+      } else {
+        const ratio = spentForDay / dailyBudget;
+        cellClass += ratio > 1.4 ? ' over-high' : ' over';
+      }
+      
+      if (isToday) {
+        cellClass += ' today';
+      }
+      
+      if (!isFuture) {
+        tooltip = `<div class="heatmap-tooltip">Ngày ${pad(day)}/${pad(displayMonthNum)}: ${fmtVND(spentForDay)} / ${fmtVND(dailyBudget)}</div>`;
+      }
+      
+      cellsHtml += `<div class="${cellClass}">${cellContent}${tooltip}</div>`;
+    }
+    
+    return cellsHtml;
+  }
+
+  function renderFoodHeatmapMonth() {
+    const displayMonthKey = monthKeyOf(foodHeatmapMonth);
     const dailyBudget = getDailyFoodBudget();
     const todayKey = todayISO();
     const currentMonthKey = monthKey(todayKey);
+    
     const spentToday = data.transactions.filter(t => t.type === 'expense' && t.category === 'an_uong' && t.date === todayKey).reduce((sum, t) => sum + Number(t.amount || 0), 0);
     const remaining = dailyBudget - spentToday;
     const progress = dailyBudget > 0 ? Math.min(100, (spentToday / dailyBudget) * 100) : 0;
     const isOver = spentToday > dailyBudget;
     const monthFood = data.transactions.filter(t => t.type === 'expense' && t.category === 'an_uong' && monthKey(t.date) === currentMonthKey).reduce((sum, t) => sum + Number(t.amount || 0), 0);
-    const monthDays = [];
-    const [year, month] = currentMonthKey.split('-').map(Number);
-    const totalDays = daysInMonth(year, month - 1);
-    for (let day = 1; day <= totalDays; day++) {
-      const dayISO = `${year}-${pad(month)}-${pad(day)}`;
-      const spentForDay = data.transactions.filter(t => t.type === 'expense' && t.category === 'an_uong' && t.date === dayISO).reduce((sum, t) => sum + Number(t.amount || 0), 0);
-      const diff = dailyBudget - spentForDay;
-      monthDays.push({ day, dayISO, spentForDay, diff, state: spentForDay > dailyBudget ? 'over' : (diff >= 0 ? 'save' : 'ok') });
-    }
-
+    
+    const body = document.getElementById('foodCardBody');
     body.innerHTML = `
       <div class="fbig" style="color:${isOver ? 'var(--rose)' : 'var(--sage)'};">${fmtVND(spentToday)} / ${fmtVND(dailyBudget)}</div>
       <div class="fsub">${isOver ? 'Đã vượt định mức ăn uống hôm nay' : 'Còn trong định mức ăn uống hôm nay'}</div>
@@ -327,19 +383,43 @@
           </div>
         </div>
       ` : `<div class="hint" style="margin-top:12px;">${isOver ? 'Bạn đang vượt định mức ăn uống hôm nay.' : 'Bạn đã dùng hết định mức ăn uống hôm nay.'}</div>`}
-      <div class="food-day-history">
-        ${monthDays.map(item => `
-          <div class="food-day-row ${item.state}">
-            <strong>${item.day}</strong>
-            <div class="food-day-track"><div class="food-day-fill" style="width:${Math.min(100, (item.spentForDay / Math.max(dailyBudget, item.spentForDay, 1)) * 100)}%"></div></div>
-            <span class="food-day-val">${fmtVND(item.spentForDay)}</span>
-          </div>
-        `).join('')}
+      
+      <div class="heatmap-wrapper">
+        <div class="heatmap-nav">
+          <button id="foodPrevBtn">‹</button>
+          <div class="month-label" id="foodMonthLabel">${monthLabel(displayMonthKey)}</div>
+          <button id="foodNextBtn">›</button>
+        </div>
+        <div class="heatmap-cal" id="foodHeatmapCal">
+          ${buildFoodHeatmapHtml(foodHeatmapMonth)}
+        </div>
+        <div class="heatmap-legend">
+          <div class="heatmap-legend-item"><div class="heatmap-legend-sample" style="background:rgba(120,167,137,0.28);"></div><span>Trong định mức</span></div>
+          <div class="heatmap-legend-item"><div class="heatmap-legend-sample" style="background:rgba(120,167,137,0.5);"></div><span>Dùng nhiều (>70%)</span></div>
+          <div class="heatmap-legend-item"><div class="heatmap-legend-sample" style="background:rgba(215,123,144,0.28);"></div><span>Vượt định mức</span></div>
+          <div class="heatmap-legend-item"><div class="heatmap-legend-sample" style="background:var(--border);"></div><span>Chưa tới</span></div>
+        </div>
       </div>
     `;
 
-    const btn = document.getElementById('goSetFood');
-    if(btn) btn.addEventListener('click', ()=> document.querySelector('.tab-btn[data-tab="settings"]').click());
+    // Attach event listeners
+    document.getElementById('foodPrevBtn').addEventListener('click', () => {
+      foodHeatmapMonth = new Date(foodHeatmapMonth.getFullYear(), foodHeatmapMonth.getMonth() - 1, 1);
+      renderFoodHeatmapMonth();
+    });
+
+    document.getElementById('foodNextBtn').addEventListener('click', () => {
+      foodHeatmapMonth = new Date(foodHeatmapMonth.getFullYear(), foodHeatmapMonth.getMonth() + 1, 1);
+      renderFoodHeatmapMonth();
+    });
+  }
+
+  function renderFoodCard(){
+    // Reset to current month when opening food card
+    if(monthKeyOf(foodHeatmapMonth) !== monthKey(todayISO())) {
+      foodHeatmapMonth = new Date();
+    }
+    renderFoodHeatmapMonth();
   }
 
   function renderDonut(mk, monthExpense){

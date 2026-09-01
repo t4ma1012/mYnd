@@ -63,6 +63,34 @@
     if (gate) gate.classList.add('hidden');
   }
 
+  function showInfraError(){
+    const root = document.documentElement;
+    if (!root) return;
+    root.classList.remove('gpx-auth-checking', 'gpx-authed', 'gpx-logged-out');
+    root.classList.add('gpx-infra-error');
+    
+    if (!document.body) return;
+    let errorOverlay = document.getElementById('gpx-infra-error');
+    if (errorOverlay) return;
+    
+    errorOverlay = document.createElement('div');
+    errorOverlay.id = 'gpx-infra-error';
+    errorOverlay.setAttribute('data-gpx-chrome','1');
+    errorOverlay.innerHTML = `
+      <div class="gpx-login-card">
+        <div class="gpx-logo">⚠</div>
+        <h2>Lỗi kết nối</h2>
+        <p>Không thể kết nối máy chủ đăng nhập. Vui lòng kiểm tra mạng và tải lại trang.</p>
+        <button id="gpx-reload-btn">Tải lại trang</button>
+        <div class="gpx-login-note" style="margin-top:12px;font-size:11px;color:var(--ink-faint);">Nếu lỗi vẫn tiếp tục, vui lòng đợi một lúc rồi thử lại.</div>
+      </div>`;
+    document.body.appendChild(errorOverlay);
+    
+    document.getElementById('gpx-reload-btn').addEventListener('click', () => {
+      window.location.reload();
+    });
+  }
+
   try {
     const savedTheme = localStorage.getItem('gpx-theme') || 'light';
     if (document.documentElement) {
@@ -76,7 +104,6 @@
 
   document.addEventListener('DOMContentLoaded', ()=>{
     currentPage = getCurrentPage();
-    ensureAppVisible();
     injectAuthGate();
     injectNav();
     injectSyncToast();
@@ -208,12 +235,15 @@
       setAuthState('authed');
       const gate = document.getElementById('gpx-authgate');
       if (gate) gate.classList.add('hidden');
+      const infraError = document.getElementById('gpx-infra-error');
+      if (infraError) infraError.remove();
+      document.documentElement.classList.remove('gpx-infra-error');
       window.Store && typeof window.Store.init === 'function' && window.Store.init(window.gpxDb, user.uid);
       document.dispatchEvent(new CustomEvent('gpx-ready'));
       return;
     }
 
-    ensureAppVisible();
+    setAuthState('logged-out');
     if (window.Store && typeof window.Store.reset === 'function') {
       window.Store.reset();
     }
@@ -221,14 +251,14 @@
 
   function wireFirebase(){
     if(!window.gpxAuth || !window.gpxDb){
-      console.warn('[AppShell] Firebase Auth/Firestore chưa sẵn sàng. Kiểm tra shared/firebase-config.js.');
-      ensureAppVisible();
+      console.error('[AppShell] Firebase Auth/Firestore chưa sẵn sàng. Kiểm tra shared/firebase-config.js.');
+      showInfraError();
       return;
     }
 
     if(!window.Store || typeof window.Store.init !== 'function' || typeof window.Store.reset !== 'function'){
-      console.warn('[AppShell] Store chưa sẵn sàng. Vui lòng kiểm tra shared/store.js.');
-      ensureAppVisible();
+      console.error('[AppShell] Store chưa sẵn sàng. Vui lòng kiểm tra shared/store.js.');
+      showInfraError();
       return;
     }
 

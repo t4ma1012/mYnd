@@ -70,10 +70,10 @@
   header{
     max-width:1080px;margin:20px auto 0;padding:18px 22px;border:1px solid var(--border);border-radius:20px;
     display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;
-    background:rgba(255,255,255,0.56);backdrop-filter:blur(8px);box-shadow:var(--shadow);
+    background:var(--surface);backdrop-filter:none;box-shadow:var(--shadow);position:relative;z-index:20;
   }
   html[data-theme="dark"] header{
-    background:rgba(16,30,51,0.72);
+    background:var(--surface);
   }
   .brand{display:flex;align-items:center;gap:14px;}
   .brand-mark{
@@ -94,15 +94,15 @@
     border:none;background:transparent;padding:9px 18px;border-radius:999px;font-size:13px;font-weight:600;
     color:var(--ink-dim);cursor:pointer;font-family:'Be Vietnam Pro';transition:.15s;white-space:nowrap;
   }
-  nav.tabs button.active{background:var(--rose);color:var(--surface);box-shadow:0 4px 10px rgba(225,96,126,0.35);}
+  nav.tabs button.active{background:var(--gpx-accent);color:var(--gpx-accent-ink);box-shadow:0 4px 10px rgba(122,165,248,0.25);}
   nav.tabs button:not(.active):hover{color:var(--ink);}
 
   .add-btn{
-    border:none;background:linear-gradient(135deg,#E1607E,#C9536B);color:var(--surface);
+    border:none;background:var(--gpx-accent);color:var(--gpx-accent-ink);
     padding:12px 22px;border-radius:999px;font-size:14px;font-weight:700;cursor:pointer;
-    box-shadow:0 8px 18px rgba(201,83,107,0.35);font-family:'Be Vietnam Pro';transition:.15s;
+    box-shadow:0 8px 18px rgba(122,165,248,0.3);font-family:'Be Vietnam Pro';transition:.15s;
   }
-  .add-btn:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(201,83,107,0.42);}
+  .add-btn:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(122,165,248,0.4);}
 
   main{max-width:1080px;margin:0 auto;padding:8px 24px 40px;}
   .tab-panel{display:none;}
@@ -211,7 +211,7 @@
   .wish-price{font-family:'Playfair Display';font-weight:700;font-size:18px;margin-top:8px;}
   .wish-note{font-size:11.5px;color:var(--ink-dim);margin-top:6px;min-height:14px;}
   .progress-track{height:7px;background:var(--bg-soft);border-radius:999px;margin-top:12px;overflow:hidden;}
-  .progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#E1607E,#C9536B);}
+  .progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#7AA5F8,#5E8EF8);}
   .progress-label{font-size:10.5px;color:var(--ink-faint);margin-top:6px;font-family:'JetBrains Mono';}
   .wish-actions{display:flex;gap:8px;margin-top:14px;}
   .wish-actions button{
@@ -219,7 +219,7 @@
     padding:7px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Be Vietnam Pro';
   }
   .wish-actions .buy-btn{background:var(--sage);color:var(--surface);border-color:var(--sage);}
-  .wish-actions .del-btn:hover{background:var(--rose-soft);color:var(--rose);border-color:var(--rose);}
+  .wish-actions .del-btn:hover{background:rgba(215,123,144,0.12);color:var(--rose);border-color:var(--rose);}
   .empty-state{
     text-align:center;padding:50px 20px;color:var(--ink-faint);font-size:13px;
   }
@@ -273,8 +273,8 @@
     flex:1;padding:11px;border-radius:12px;font-size:13.5px;font-weight:700;cursor:pointer;border:1px solid var(--border-strong);
     background:var(--surface);color:var(--ink-dim);font-family:'Be Vietnam Pro';
   }
-  .modal-actions .save-btn{background:var(--rose);border-color:var(--rose);color:var(--gpx-accent-ink);}
-  .modal-actions .danger-btn{color:var(--rose);}
+  .modal-actions .save-btn{background:var(--gpx-accent);border-color:var(--gpx-accent);color:var(--gpx-accent-ink);}
+  .modal-actions .danger-btn{color:var(--rose);border-color:rgba(215,123,144,0.3);}
   .hint{font-size:10.5px;color:var(--ink-faint);margin-top:6px;}
 
   ::-webkit-scrollbar{width:8px;height:8px;}
@@ -320,13 +320,34 @@
   .food-card .food-actions button.secondary{background:var(--surface);color:var(--ink);border-color:var(--border-strong);}
   .food-empty{color:var(--ink-faint);font-size:12.5px;line-height:1.6;}
   .food-empty button{margin-top:10px;}
-  .food-day-history{display:flex;flex-direction:column;gap:7px;margin-top:18px;}
-  .food-day-row{display:grid;grid-template-columns:38px 1fr 115px;align-items:center;gap:8px;padding:6px 0;font-size:11px;color:var(--ink-dim);}
-  .food-day-row strong{font-size:10px;}
+  /* Heatmap Calendar */
+  .heatmap-wrapper{margin-top:18px;}
+  .heatmap-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;}
+  .heatmap-nav button{width:28px;height:28px;border-radius:50%;border:1px solid var(--border-strong);background:var(--surface);color:var(--ink-dim);cursor:pointer;font-size:12px;transition:.12s;}
+  .heatmap-nav button:hover{background:var(--bg-soft);color:var(--ink);}
+  .heatmap-nav .month-label{font-family:'Playfair Display';font-weight:700;font-size:14px;color:var(--ink);min-width:100px;text-align:center;}
+  .heatmap-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px;}
+  .heatmap-col-header{text-align:center;font-size:10px;font-weight:800;color:var(--ink-faint);text-transform:uppercase;padding:4px 0;letter-spacing:.1px;}
+  .heatmap-cell{aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;cursor:pointer;position:relative;transition:.1s;border:1.5px solid transparent;background:var(--bg-soft);color:var(--ink-dim);}
+  .heatmap-cell.empty{background:transparent;border-color:transparent;cursor:default;}
+  .heatmap-cell.today{border-color:var(--gpx-accent);background:var(--surface);box-shadow:0 0 0 2px var(--gpx-accent);}
+  .heatmap-cell.future{background:var(--border);color:var(--ink-faint);}
+  .heatmap-cell.zero{background:var(--bg-soft);color:var(--ink-faint);}
+  .heatmap-cell.ok{background:rgba(120,167,137,0.28);color:var(--sage);}
+  .heatmap-cell.ok-high{background:rgba(120,167,137,0.5);color:var(--sage);font-weight:700;}
+  .heatmap-cell.over{background:rgba(215,123,144,0.28);color:var(--rose);}
+  .heatmap-cell.over-high{background:rgba(215,123,144,0.5);color:var(--rose);font-weight:700;}
+  .heatmap-cell:hover:not(.empty):not(.future){transform:scale(1.08);background:var(--surface);border-color:var(--gpx-accent);z-index:10;}
+  .heatmap-legend{display:flex;align-items:center;gap:14px;font-size:11px;color:var(--ink-dim);flex-wrap:wrap;padding:8px 0;border-top:1px dashed var(--border);}
+  .heatmap-legend-item{display:flex;align-items:center;gap:5px;}
+  .heatmap-legend-sample{width:18px;height:18px;border-radius:4px;border:1px solid var(--border-strong);}
+  .heatmap-tooltip{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:8px 10px;border-radius:6px;font-size:10px;font-weight:600;white-space:nowrap;z-index:20;pointer-events:none;opacity:0;transition:.1s;margin-bottom:4px;}
+  .heatmap-cell:hover .heatmap-tooltip:not(.empty){opacity:1;}
+  
+  .food-day-history{display:none;}
+  .food-day-row{display:none;}
   .food-day-track{height:10px;border-radius:999px;background:var(--bg-soft);overflow:hidden;}
   .food-day-fill{height:100%;border-radius:999px;}
-  .food-day-row.save .food-day-fill{background:linear-gradient(90deg,#8FCBB0,#5E9A78);} .food-day-row.over .food-day-fill{background:linear-gradient(90deg,#F0899E,#C9536B);} .food-day-row.ok .food-day-fill{background:linear-gradient(90deg,#E8B94B,#C99D2B);}
-  .food-day-row.save .food-day-val{color:var(--sage);} .food-day-row.over .food-day-val{color:var(--rose);} .food-day-row.ok .food-day-val{color:var(--gold);}
   .wish-inline-form{margin-top:12px;padding:10px;border:1px solid var(--border-strong);border-radius:10px;background:var(--bg-soft);display:flex;flex-direction:column;gap:8px;}
   .wish-inline-form .row{display:flex;gap:8px;}
   .wish-inline-form input,.wish-inline-form textarea{width:100%;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:8px 9px;font-size:11.5px;color:var(--ink);font-family:'Be Vietnam Pro';}
