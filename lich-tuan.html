@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared/style.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="shared/firebase-config.js"></script>
+<script src="shared/store.js"></script>
+<script src="shared/app-shell.js"></script>
+
+<title>mYnd | Lịch tuần</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#071a2d;
+    --bg-grid:#f1f4f9;
+    --line:#1b2d45;
+    --line-strong:#2a405f;
+    --panel:#0f1d2f;
+    --panel-border:#203553;
+    --panel-strong:#12263f;
+    --header-bg:linear-gradient(180deg, #0d1d2f 0%, #0c1728 100%);
+    --header-ink:#edf3ff;
+    --ink:#edf3ff;
+    --ink-dim:#bfd0ec;
+    --ink-faint:#7b90b6;
+    --accent:#2d7af3;
+    --accent-soft:#dfeaff;
+    --accent-ink:#ffffff;
+    --accent-dim:#7ca8ff;
+    --danger:#ec6d6d;
+    --danger-soft:rgba(236,109,109,0.12);
+    --event-text:#1f2d3a;
+    --event-text-soft:rgba(31,45,58,0.72);
+    --shadow-soft:rgba(0,0,0,0.25);
+    --radius:10px;
+    --hour-h:64px;
+    --font-body:'Inter',sans-serif;
+    --font-display:'Space Grotesk',sans-serif;
+    --font-mono:'IBM Plex Mono',monospace;
+  }
+  html[data-theme="dark"]{
+    --bg:#091d2f;
+    --bg-grid:#eef3fa;
+    --line:#1b2f46;
+    --line-strong:#2d4670;
+    --panel:#101d2f;
+    --panel-border:#233c59;
+    --panel-strong:#122840;
+    --header-bg:linear-gradient(180deg, #0f1d2f 0%, #0b1727 100%);
+    --header-ink:#edf3ff;
+    --ink:#edf3ff;
+    --ink-dim:#bfd0ec;
+    --ink-faint:#7d96c2;
+    --accent:#2d7af3;
+    --accent-soft:rgba(45,122,243,0.15);
+    --accent-ink:#ffffff;
+    --accent-dim:#7ca8ff;
+    --danger:#ff7a7a;
+    --danger-soft:rgba(255,122,122,0.12);
+    --event-text:#1d2433;
+    --event-text-soft:rgba(29,36,51,0.72);
+    --shadow-soft:rgba(0,0,0,0.3);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+    overflow:hidden;
+  }
+  .brand-text .title{font-size:15px;letter-spacing:0.2px;}
+  .brand-text .sub{font-size:11px;}
+  .mono{font-family:var(--font-mono);}
+  .display{font-family:var(--font-display);}
+
+  /* ---------- HEADER ---------- */
+  header{
+    position:relative;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 14px;
+    border-bottom:1px solid var(--panel-border);
+    background:var(--header-bg);
+    color:var(--header-ink);
+    flex-shrink:0;
+    z-index:30;
+    box-shadow:0 8px 18px var(--shadow-soft);
+  }
+  .brand{display:flex;align-items:center;gap:10px;margin-right:6px;}
+  .brand svg{flex-shrink:0;}
+  .brand-text .title{font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:0.2px;color:var(--header-ink);}
+  .brand-text .sub{font-size:11px;color:var(--ink-faint);font-family:var(--font-mono);margin-top:1px;}
+
+  .nav-group{display:flex;align-items:center;gap:6px;}
+  .icon-btn{
+    width:32px;height:32px;border-radius:8px;border:1px solid var(--panel-border);
+    background:var(--panel); color:var(--ink-dim); display:flex;align-items:center;justify-content:center;
+    cursor:pointer; transition:.15s;
+  }
+  .icon-btn:hover{background:var(--panel-strong);color:var(--ink);border-color:var(--line-strong);}
+  .btn{
+    border:1px solid var(--panel-border); background:var(--panel); color:var(--ink);
+    padding:7px 14px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;
+    font-family:var(--font-body); transition:.15s;
+  }
+  .btn:hover{background:var(--panel-strong);border-color:var(--line-strong);}
+  .btn-accent{
+    background:var(--accent); color:var(--accent-ink); border:1px solid var(--accent);
+  }
+  .btn-accent:hover{filter:brightness(1.05);}
+  .btn-ghost-danger{background:transparent;border:1px solid var(--panel-border);color:var(--danger);}
+  .btn-ghost-danger:hover{background:var(--danger-soft);border-color:var(--danger);}
+
+  .period-label{
+    position:relative; left:auto; top:auto; right:auto; bottom:auto; transform:none;
+    font-family:'Space Grotesk';font-weight:600;font-size:15px;min-width:150px;text-align:center; z-index:1;
+  }
+  .period-sub{
+    position:relative; left:auto; top:auto; right:auto; bottom:auto; transform:none;
+    font-size:11px;color:var(--ink-faint);font-family:'IBM Plex Mono';text-align:center;min-width:150px;margin-top:-2px; z-index:1;
+  }
+
+  header .spacer{flex:1;}
+  .add-btn{display:flex;align-items:center;gap:6px;}
+
+  /* ---------- BODY LAYOUT ---------- */
+  .layout{flex:1;display:flex;min-height:0;background:var(--bg);min-width:0;}
+  .sidebar{
+    width:248px; flex-shrink:0; border-right:1px solid var(--panel-border);
+    background:var(--panel); padding:14px 12px; overflow-y:auto; min-width:0;
+    color:var(--ink);
+  }
+  .sidebar.collapsed{display:none;}
+
+  /* ---------- TODO PANEL (Eisenhower matrix) ---------- */
+  .todo-panel{
+    width:268px; flex-shrink:0; border-right:1px solid var(--panel-border);
+    background:var(--panel); padding:14px 12px; overflow-y:auto; display:flex; flex-direction:column; gap:12px;
+    color:var(--ink); min-width:0;
+  }
+  .todo-panel.collapsed{display:none;}
+  .todo-tabs{display:flex; border:1px solid var(--panel-border); border-radius:8px; overflow:hidden; flex-shrink:0;}
+  .todo-tabs button{
+    flex:1; padding:8px 6px; background:var(--bg-grid); color:var(--ink-dim); border:none; font-size:12px;
+    font-weight:600; cursor:pointer; font-family:var(--font-body); transition:.15s;
+  }
+  .todo-tabs button.active{background:var(--accent); color:var(--accent-ink);}
+  .todo-daynav{display:flex; align-items:center; justify-content:space-between; gap:6px; flex-shrink:0;}
+  .todo-daynav .day-label{font-family:'Space Grotesk'; font-weight:600; font-size:12.5px; text-align:center;}
+  .todo-daynav .day-sub{font-size:10px; color:var(--ink-faint); font-family:'IBM Plex Mono'; text-align:center;}
+  .quadrant-grid{
+    display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:8px; flex:1; min-height:420px;
+  }
+  .quadrant{
+    display:flex; flex-direction:column; border:1px solid var(--panel-border); border-radius:10px;
+    background:var(--panel); overflow:hidden; min-height:0;
+  }
+  .quadrant .q-head{
+    font-family:'IBM Plex Mono'; font-size:9.5px; letter-spacing:.3px; font-weight:600; padding:7px 8px 6px;
+    border-bottom:1px solid var(--panel-border); display:flex; align-items:center; gap:5px; line-height:1.25;
+    color:var(--ink-dim);
+  }
+  .quadrant .q-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .q-urgent-important .q-dot{background:var(--danger);}
+  .q-important .q-dot{background:#4CC9F0;}
+  .q-urgent .q-dot{background:var(--accent);}
+  .q-other .q-dot{background:var(--ink-faint);}
+  .q-list{
+    flex:1; overflow-y:auto; padding:6px 7px; display:flex; flex-direction:column; gap:5px; min-height:30px;
+  }
+  .q-item{
+    display:flex; align-items:flex-start; gap:5px; font-size:11px; line-height:1.3; padding:3px 4px; border-radius:6px;
+  }
+  .q-item:hover{background:rgba(255,255,255,0.04);}
+  .q-item input[type=checkbox]{margin-top:1.5px; accent-color:var(--accent); cursor:pointer; flex-shrink:0;}
+  .q-item .q-text{flex:1; word-break:break-word;}
+  .q-item.done .q-text{color:var(--ink-faint); text-decoration:line-through;}
+  .q-item .q-del{
+    color:var(--ink-faint); cursor:pointer; font-size:12px; flex-shrink:0; opacity:0; transition:.12s; line-height:1;
+    padding:0 2px;
+  }
+  .q-item:hover .q-del{opacity:1;}
+  .q-item .q-del:hover{color:var(--danger);}
+  .q-empty{color:var(--ink-faint); font-size:10.5px; font-style:italic; padding:2px 4px;}
+  .q-add{border-top:1px solid var(--panel-border); padding:5px 6px; flex-shrink:0;}
+  .q-add input{
+    width:100%; background:var(--panel-strong); border:1px solid var(--panel-border); color:var(--ink);
+    border-radius:6px; padding:5px 7px; font-size:11px; font-family:var(--font-body); outline:none;
+  }
+  .q-add input:focus{border-color:var(--accent);}
+
+  .mini-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .mini-cal-head .m-label{font-family:'Space Grotesk';font-weight:600;font-size:13px;}
+  .mini-cal-nav{display:flex;gap:4px;}
+  .mini-cal-nav button{
+    width:22px;height:22px;border-radius:5px;border:1px solid var(--panel-border);background:var(--panel);
+    color:var(--ink-dim);cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;
+  }
+  .mini-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;font-size:11px;}
+  .mini-dow{color:var(--ink-faint);text-align:center;padding:4px 0;font-family:'IBM Plex Mono';}
+  .mini-day{
+    aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:6px;
+    cursor:pointer;color:var(--ink-dim);position:relative;font-family:'IBM Plex Mono';
+  }
+  .mini-day:hover{background:#1B2A3F;}
+  .mini-day.other-month{color:#33465F;}
+  .mini-day.today{outline:1px solid var(--accent);color:var(--accent);font-weight:600;}
+  .mini-day.selected-week{background:rgba(255,183,77,0.10);}
+  .mini-day .dot{
+    position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
+    width:3px;height:3px;border-radius:50%;background:var(--accent);
+  }
+
+  .sidebar-section{margin-top:26px;}
+  .sidebar-section h4{
+    font-family:'IBM Plex Mono';font-size:10.5px;letter-spacing:1px;text-transform:uppercase;
+    color:var(--ink-faint);margin:0 0 10px 0;font-weight:500;
+  }
+  .today-list{display:flex;flex-direction:column;gap:8px;}
+  .today-item{
+    display:flex;gap:8px;align-items:flex-start;padding:8px 9px;border-radius:8px;background:var(--panel);
+    border:1px solid var(--panel-border);cursor:pointer;font-size:12px;
+  }
+  .today-item:hover{border-color:var(--line-strong);}
+  .today-item .chip{width:8px;height:8px;border-radius:2px;margin-top:3px;flex-shrink:0;}
+  .today-item .t-title{font-weight:600;color:var(--ink);}
+  .today-item .t-time{color:var(--ink-faint);font-family:'IBM Plex Mono';font-size:10.5px;margin-top:2px;}
+  .empty-note{color:var(--ink-faint);font-size:12px;font-style:italic;padding:4px 0;}
+
+  .legend-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;}
+  .legend-swatch{
+    aspect-ratio:1;border-radius:6px;cursor:default;position:relative;
+  }
+
+  /* ---------- WEEK GRID ---------- */
+  .grid-scroll{
+    flex:1; overflow:auto; position:relative; min-width:0; z-index:1;
+    scroll-padding-top:0;
+  }
+  .week-head{
+    display:grid; grid-template-columns:56px repeat(7,minmax(120px,1fr));
+    position:sticky; top:0; z-index:18; background:var(--panel); border-bottom:1px solid var(--panel-border);
+    color:var(--ink); min-width:860px; min-height:84px;
+    box-shadow:0 1px 0 rgba(0,0,0,0.02);
+  }
+  .week-head .corner{border-right:1px solid var(--panel-border); background:#111f31;}
+  .day-head{
+    padding:10px 6px 12px; text-align:center; border-right:1px solid var(--line);
+    font-family:'Space Grotesk';
+  }
+  .day-head .dow{font-size:11px;color:var(--ink-faint);font-weight:600;letter-spacing:0.5px;font-family:var(--font-mono);}
+  .day-head .num{
+    font-size:18px;font-weight:700;margin-top:3px;color:var(--ink);
+    width:30px;height:30px;line-height:30px;border-radius:50%;margin-left:auto;margin-right:auto;
+  }
+  .day-head.is-today .num{background:var(--accent);color:var(--accent-ink);}
+  .day-head.is-today .dow{color:var(--accent);}
+
+  .grid-body{display:grid;grid-template-columns:56px repeat(7,minmax(120px,1fr));position:relative;background:#edf3fb;min-width:860px;}
+  .time-col{border-right:1px solid var(--panel-border); background:rgba(20,35,52,0.05);}
+  .time-cell{
+    height:var(--hour-h); position:relative; font-family:'IBM Plex Mono'; font-size:10px; color:#7a8ca5;
+    overflow:visible;
+  }
+  .time-cell span{
+    position:absolute; top:0; right:8px; transform:translateY(-50%);
+    background:rgba(255,255,255,0.35); padding-left:4px; line-height:1; z-index:2;
+  }
+  .day-col{
+    position:relative; border-right:1px solid rgba(28,42,62,0.18); background-image:repeating-linear-gradient(
+      to bottom, transparent, transparent calc(var(--hour-h) - 1px), rgba(24,35,52,0.12) calc(var(--hour-h) - 1px), rgba(24,35,52,0.12) var(--hour-h)
+    );
+    background-color:#edf3fb;
+  }
+  .day-col.weekend-col{background-color:rgba(148,163,184,0.04);}
+  .day-col.today-col{background-color:rgba(45,122,243,0.06);}
+  .slot-hit{position:absolute;left:0;right:0;cursor:pointer;}
+  .slot-hit:hover{background:rgba(255,255,255,0.03);}
+
+  .now-line{position:absolute;left:0;right:0;height:0;border-top:1.5px solid var(--accent);z-index:8;}
+  .now-line::before{
+    content:'';position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--accent);
+    box-shadow:0 0 0 3px rgba(255,183,77,0.25);
+  }
+
+  .event-block{
+    position:absolute; border-radius:7px; padding:5px 7px; overflow:hidden; cursor:pointer;
+    border-left:3px solid; box-shadow:0 2px 6px rgba(0,0,0,0.18); transition:.12s;
+    z-index:5;
+  }
+  .event-block:hover{transform:translateY(-1px); box-shadow:0 4px 10px rgba(0,0,0,0.24); z-index:9;}
+  .event-block .e-title{font-size:12px;font-weight:700;line-height:1.25;color:var(--event-text);}
+  .event-block .e-time{font-size:10px;font-family:var(--font-mono);color:var(--event-text-soft);margin-top:1px;}
+  .event-block .e-loc{font-size:10px;color:var(--event-text-soft);margin-top:1px;}
+  .event-block.compact .e-time,.event-block.compact .e-loc{display:none;}
+
+  /* ---------- MODAL ---------- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(6,10,16,0.6);backdrop-filter:blur(2px);
+    display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:.15s;
+  }
+  .overlay.open{opacity:1;pointer-events:auto;}
+  .modal{
+    width:380px; max-width:92vw; max-height:88vh; overflow-y:auto; background:#141F30; border:1px solid var(--panel-border);
+    border-radius:14px; padding:22px; transform:translateY(8px) scale(.98); transition:.15s;
+    box-shadow:0 20px 50px rgba(0,0,0,0.5);
+  }
+  .overlay.open .modal{transform:translateY(0) scale(1);}
+  .modal h3{margin:0 0 16px 0; font-family:'Space Grotesk'; font-size:17px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:11px;color:var(--ink-faint);margin-bottom:6px;font-family:'IBM Plex Mono';letter-spacing:.3px;text-transform:uppercase;}
+  .field input[type=text], .field input[type=date], .field input[type=time], .field select{
+    width:100%; background:var(--panel-strong); border:1px solid var(--panel-border); color:var(--ink);
+    border-radius:8px; padding:9px 10px; font-size:13px; font-family:var(--font-body); outline:none;
+  }
+  .field input:focus, .field select:focus{border-color:var(--accent);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .swatches{display:flex;flex-wrap:wrap;gap:8px;}
+  .swatch{
+    width:28px;height:28px;border-radius:8px;cursor:pointer;border:2px solid transparent;position:relative;
+  }
+  .swatch.active{border-color:#fff;}
+  .swatch.active::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:#161616;font-weight:700;}
+  .seg{display:flex;border:1px solid var(--panel-border);border-radius:8px;overflow:hidden;}
+  .seg button{
+    flex:1;padding:8px;background:var(--panel-strong);color:var(--ink-dim);border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);
+  }
+  .seg button.active{background:var(--accent);color:var(--accent-ink);}
+  .weekly-fields{display:none;}
+  .weekly-fields.show{display:block;}
+  .modal-actions{display:flex;gap:8px;margin-top:18px;}
+  .modal-actions .btn{flex:1;text-align:center;}
+  .hint{font-size:10.5px;color:var(--ink-faint);margin-top:5px;}
+
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:#26374E;border-radius:6px;}
+  ::-webkit-scrollbar-thumb:hover{background:#324A69;}
+
+  @media (max-width:1100px){
+    .sidebar{width:220px;}
+    .todo-panel{width:230px;}
+    .week-head, .grid-body{min-width:820px;}
+  }
+
+  @media (max-width:900px){
+    body{
+      height:auto;
+      min-height:100vh;
+      overflow-x:hidden;
+      overflow-y:auto;
+    }
+    .layout{
+      display:block;
+      min-height:auto;
+    }
+    .sidebar, .todo-panel{
+      position:relative;
+      width:100%;
+      max-width:none;
+      border-right:none;
+      border-bottom:1px solid var(--panel-border);
+      box-shadow:none;
+      overflow:visible;
+    }
+    .sidebar.collapsed, .todo-panel.collapsed{display:none;}
+    .grid-scroll{
+      display:block;
+      width:100%;
+      min-width:0;
+      overflow-x:auto;
+      overflow-y:auto;
+    }
+    .week-head, .grid-body{min-width:820px;}
+  }
+
+  @media (max-width:600px){
+    header{gap:8px; padding:8px 10px;}
+    .nav-group{gap:4px;}
+    .icon-btn{width:28px;height:28px;}
+    .btn{padding:7px 10px; font-size:12px;}
+    .period-label{min-width:0; font-size:13px;}
+    .period-sub{min-width:0; font-size:10px;}
+    .brand-text .sub{display:none;}
+    .week-head, .grid-body{min-width:760px;}
+  }
+</style>
+</head>
+<body data-page="calendar">
+
+<header>
+  <div class="brand">
+    <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+      <rect x="1" y="1" width="28" height="28" rx="7" stroke="#FFB74D" stroke-width="1.4"/>
+      <line x1="1" y1="10" x2="29" y2="10" stroke="#FFB74D" stroke-width="1.4"/>
+      <circle cx="9" cy="5.5" r="1.3" fill="#FFB74D"/>
+      <circle cx="21" cy="5.5" r="1.3" fill="#FFB74D"/>
+      <rect x="6" y="14" width="5" height="5" rx="1" fill="#4CC9F0"/>
+      <rect x="13" y="14" width="5" height="5" rx="1" fill="#FF6B6B"/>
+      <rect x="20" y="14" width="4" height="5" rx="1" fill="#06D6A0"/>
+    </svg>
+    <div class="brand-text">
+      <div class="title">Lịch Tuần</div>
+      <div class="sub">bản kế hoạch cá nhân</div>
+    </div>
+  </div>
+
+  <button class="icon-btn" id="toggleTodo" title="Ẩn/hiện việc cần làm">✓</button>
+  <button class="icon-btn" id="toggleSidebar" title="Ẩn/hiện thanh bên">☰</button>
+
+  <div class="nav-group">
+    <button class="icon-btn" id="prevWeek">‹</button>
+    <button class="btn" id="todayBtn">Hôm nay</button>
+    <button class="icon-btn" id="nextWeek">›</button>
+  </div>
+
+  <div>
+    <div class="period-label" id="periodLabel">—</div>
+    <div class="period-sub" id="periodSub">—</div>
+  </div>
+
+  <div class="spacer"></div>
+  <button class="btn btn-accent add-btn" id="addBtn">
+    <span style="font-size:15px;line-height:0;">+</span> Sự kiện
+  </button>
+</header>
+
+<div class="layout">
+  <aside class="todo-panel" id="todoPanel">
+    <div class="todo-tabs">
+      <button type="button" class="active" id="todoTabGeneral">Việc chung</button>
+      <button type="button" id="todoTabDaily">Theo ngày</button>
+    </div>
+    <div class="todo-daynav" id="todoDayNav" style="display:none;">
+      <button class="icon-btn" id="todoPrevDay">‹</button>
+      <div>
+        <div class="day-label" id="todoDayLabel">—</div>
+        <div class="day-sub" id="todoDaySub">—</div>
+      </div>
+      <button class="icon-btn" id="todoNextDay">›</button>
+    </div>
+    <div class="quadrant-grid">
+      <div class="quadrant q-urgent-important">
+        <div class="q-head"><span class="q-dot"></span>Gấp &amp; Quan trọng</div>
+        <div class="q-list" data-q="q1"></div>
+        <div class="q-add"><input type="text" placeholder="+ Thêm việc..." data-q="q1"></div>
+      </div>
+      <div class="quadrant q-important">
+        <div class="q-head"><span class="q-dot"></span>Quan trọng, không gấp</div>
+        <div class="q-list" data-q="q2"></div>
+        <div class="q-add"><input type="text" placeholder="+ Thêm việc..." data-q="q2"></div>
+      </div>
+      <div class="quadrant q-urgent">
+        <div class="q-head"><span class="q-dot"></span>Gấp, không quan trọng</div>
+        <div class="q-list" data-q="q3"></div>
+        <div class="q-add"><input type="text" placeholder="+ Thêm việc..." data-q="q3"></div>
+      </div>
+      <div class="quadrant q-other">
+        <div class="q-head"><span class="q-dot"></span>Không gấp, không quan trọng</div>
+        <div class="q-list" data-q="q4"></div>
+        <div class="q-add"><input type="text" placeholder="+ Thêm việc..." data-q="q4"></div>
+      </div>
+    </div>
+  </aside>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="mini-cal-head">
+      <div class="m-label" id="miniLabel">—</div>
+      <div class="mini-cal-nav">
+        <button id="miniPrev">‹</button>
+        <button id="miniNext">›</button>
+      </div>
+    </div>
+    <div class="mini-grid" id="miniGrid"></div>
+
+    <div class="sidebar-section">
+      <h4>Hôm nay</h4>
+      <div class="today-list" id="todayList"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <h4>Bảng màu (21 màu)</h4>
+      <div class="legend-grid" id="legendGrid"></div>
+    </div>
+  </aside>
+
+  <div class="grid-scroll" id="gridScroll">
+    <div class="week-head" id="weekHead"></div>
+    <div class="grid-body" id="gridBody"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3 id="modalTitle">Sự kiện mới</h3>
+
+    <div class="field">
+      <label>Tên sự kiện</label>
+      <input type="text" id="f-title" placeholder="VD: Học tiếng Anh, Gym, Họp nhóm...">
+    </div>
+
+    <div class="field">
+      <label>Màu</label>
+      <div class="swatches" id="f-swatches"></div>
+    </div>
+
+    <div class="field">
+      <label>Địa điểm (tuỳ chọn)</label>
+      <input type="text" id="f-location" placeholder="VD: Phòng B1.08, Zoom...">
+    </div>
+
+    <div class="field">
+      <label>Lặp lại</label>
+      <div class="seg">
+        <button type="button" id="seg-once" class="active">Một lần</button>
+        <button type="button" id="seg-weekly">Hằng tuần</button>
+      </div>
+    </div>
+
+    <div class="field" id="onceFields">
+      <label>Ngày</label>
+      <input type="date" id="f-date">
+    </div>
+
+    <div class="weekly-fields" id="weeklyFields">
+      <div class="field">
+        <label>Vào các thứ</label>
+        <div class="dow-checks" id="dowChecks" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
+          <label class="dow-check" style="display:flex;align-items:center;gap:8px;padding:7px 8px;border:1px solid var(--panel-border);border-radius:8px;background:var(--panel-strong);font-size:12px;color:var(--ink);"><input type="checkbox" value="1"> Thứ 2</label>
+          <label class="dow-check" style="display:flex;align-items:center;gap:8px;padding:7px 8px;border:1px solid var(--panel-border);border-radius:8px;background:var(--panel-strong);font-size:12px;color:var(--ink);"><input type="checkbox" value="2"> Thứ 3</label>
+          <label class="dow-check" style="display:flex;align-items:center;gap:8px;padding:7px 8px;border:1px solid var(--panel-border);border-radius:8px;background:var(--panel-strong);font-size:12px;color:var(--ink);"><input type="checkbox" value="3"> Thứ 4</label>
+          <label class="dow-check" style="display:flex;align-items:center;gap:8px;padding:7px 8px;border:1px solid var(--panel-border);border-radius:8px;background:var(--panel-strong);font-size:12px;color:var(--ink);"><input type="checkbox" value="4"> Thứ 5</label>
+          <label class="dow-check" style="display:flex;align-items:center;gap:8px;padding:7px 8px;border:1px solid var(--panel-border);border-radius:8px;background:var(--panel-strong);font-size:12px;color:var(--ink);"><input type="checkbox" value="5"> Thứ 6</label>
+          <label class="dow-check" style="display:flex;align-items:center;gap:8px;padding:7px 8px;border:1px solid var(--panel-border);border-radius:8px;background:var(--panel-strong);font-size:12px;color:var(--ink);"><input type="checkbox" value="6"> Thứ 7</label>
+          <label class="dow-check" style="display:flex;align-items:center;gap:8px;padding:7px 8px;border:1px solid var(--panel-border);border-radius:8px;background:var(--panel-strong);font-size:12px;color:var(--ink);"><input type="checkbox" value="0"> Chủ nhật</label>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Từ ngày</label>
+          <input type="date" id="f-recur-start">
+        </div>
+        <div class="field">
+          <label>Đến ngày</label>
+          <input type="date" id="f-recur-end">
+        </div>
+      </div>
+      <div class="hint">Để trống "Đến ngày" nếu lặp vô thời hạn.</div>
+    </div>
+
+    <div class="field">
+      <label>Ghi chú</label>
+      <textarea id="f-note" rows="3" style="width:100%;resize:vertical;border-radius:8px;border:1px solid var(--panel-border);background:var(--panel-strong);color:var(--ink);padding:9px 10px;font:inherit;outline:none;"></textarea>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>Giờ bắt đầu</label>
+        <input type="time" id="f-start">
+      </div>
+      <div class="field">
+        <label>Giờ kết thúc</label>
+        <input type="time" id="f-end">
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost-danger" id="deleteBtn" style="display:none;">Xóa</button>
+      <button class="btn" id="cancelBtn">Hủy</button>
+      <button class="btn btn-accent" id="saveBtn">Lưu</button>
+    </div>
+  </div>
+</div>
+<script src="shared/lich-tuan-page.js"></script>
+</body>
+</html>

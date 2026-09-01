@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared/style.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="shared/firebase-config.js"></script>
+<script src="shared/store.js"></script>
+<script src="shared/app-shell.js"></script>
+<script src="shared/dashboard-data.js"></script>
+<title>mYnd</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{
+    background:var(--gpx-bg); color:var(--gpx-ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(circle at 10% 0%, rgba(59,130,246,0.08), transparent 35%),
+      radial-gradient(circle at 95% 15%, rgba(96,165,250,0.08), transparent 35%);
+  }
+  .display{font-family:'Sora',sans-serif;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  main{max-width:1200px; margin:0 auto; padding:26px 22px 60px;}
+
+  .dashboard-shell{display:flex; flex-direction:column; gap:20px;}
+  .dashboard-hero{
+    display:grid; grid-template-columns: minmax(0,1.6fr) minmax(240px,0.8fr); gap:18px; align-items:stretch;
+  }
+  .hero-card, .panel, .tile{
+    background:var(--gpx-surface); border:1px solid var(--gpx-border); border-radius:20px;
+    box-shadow:var(--gpx-shadow);
+  }
+  .hero-card{
+    display:flex; align-items:center; justify-content:space-between; gap:18px; padding:22px 24px; min-height:160px;
+  }
+  .profile-wrap{display:flex; align-items:center; gap:16px; min-width:0;}
+  .avatar{
+    width:72px; height:72px; border-radius:22px; background:linear-gradient(135deg, var(--gpx-blue-400), var(--gpx-blue-700));
+    color:#fff; font-size:28px; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 16px 28px rgba(59,130,246,0.22);
+  }
+  .eyebrow{display:block; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gpx-ink-faint); font-weight:700; margin-bottom:4px;}
+  .hello h1{font-family:'Sora'; font-weight:800; font-size:32px; margin:0 0 6px; line-height:1.15;}
+  .hello p{margin:0; color:var(--gpx-ink-dim); font-size:13px;}
+  .date-pill{
+    display:inline-flex; align-items:center; gap:7px; margin-top:12px; padding:8px 12px; border-radius:999px;
+    background:var(--gpx-surface-soft); border:1px solid var(--gpx-border); color:var(--gpx-ink); font-weight:600; font-size:12px;
+  }
+  .quote-card{
+    padding:20px 22px; display:flex; flex-direction:column; justify-content:center; min-height:160px; position:relative; overflow:hidden;
+  }
+  .quote-card::before{
+    content:'“'; position:absolute; top:10px; right:18px; font-size:76px; line-height:1; color:rgba(59,130,246,0.08); font-family:'Sora';
+  }
+  .quote-label{font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gpx-ink-faint); font-weight:700; margin-bottom:10px;}
+  .quote-card p{
+    margin:0; font-size:15px; line-height:1.7; color:var(--gpx-ink); position:relative; z-index:1;
+  }
+  .quote-by{margin-top:10px; font-size:11.5px; color:var(--gpx-ink-dim); position:relative; z-index:1;}
+
+  .dashboard-grid{
+    display:grid; grid-template-columns:repeat(12, minmax(0,1fr)); gap:18px;
+  }
+  .panel{
+    padding:18px; position:relative; overflow:hidden;
+  }
+  .panel .panel-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;}
+  .panel .panel-title{font-family:'Sora'; font-size:14px; font-weight:700; margin:0;}
+  .panel .mini-tag{
+    font-size:10px; letter-spacing:0.08em; text-transform:uppercase; background:var(--gpx-surface-soft); border:1px solid var(--gpx-border);
+    color:var(--gpx-ink-dim); padding:5px 7px; border-radius:999px; font-weight:700;
+  }
+  .focus-panel{grid-column:span 5;}
+  .progress-panel{grid-column:span 3;}
+  .countdown-panel{grid-column:span 4;}
+  .weather-panel{grid-column:span 4;}
+  .finance-panel{grid-column:span 4;}
+  .goal-panel{grid-column:span 4;}
+  .quick-actions-panel{grid-column:span 12;}
+  .focus-list{display:flex; flex-direction:column; gap:10px; margin-top:2px;}
+  .focus-item{display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border-radius:12px; border:1px solid var(--gpx-border); background:var(--gpx-surface-soft);}
+  .focus-bullet{width:9px; height:9px; border-radius:3px; background:var(--gpx-accent); margin-top:5px; flex-shrink:0;}
+  .focus-item strong{display:block; margin-bottom:3px; font-size:13px;}
+  .focus-item span{font-size:11.5px; color:var(--gpx-ink-dim); line-height:1.5;}
+  .progress-figure{font-size:34px; font-family:'Sora'; font-weight:800; margin:10px 0 8px; line-height:1;}
+  .meter{height:10px; border-radius:999px; background:var(--gpx-surface-soft); border:1px solid var(--gpx-border); overflow:hidden;}
+  .meter > span{display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg, var(--gpx-blue-400), var(--gpx-blue-600));}
+  .meta-row{display:flex; justify-content:space-between; gap:8px; font-size:11.5px; color:var(--gpx-ink-dim); margin-top:8px;}
+  .countdown-value{font-size:38px; font-family:'Sora'; font-weight:800; margin:8px 0 4px; line-height:1;}
+  .countdown-label{color:var(--gpx-ink-dim); font-size:12px; text-transform:uppercase; letter-spacing:0.08em;}
+  .weather-main{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:4px;}
+  .weather-emoji{font-size:40px; line-height:1;}
+  .weather-temp{font-size:38px; font-family:'Sora'; font-weight:800; line-height:1; margin-right:4px;}
+  .weather-sub{font-size:12px; color:var(--gpx-ink-dim); margin-top:6px;}
+  .snapshot-list{display:flex; flex-direction:column; gap:10px;}
+  .snapshot-item{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border-radius:12px; background:var(--gpx-surface-soft); border:1px solid var(--gpx-border);}
+  .snapshot-item .label{font-size:12px; color:var(--gpx-ink-dim);}
+  .snapshot-item .value{font-size:16px; font-family:'Sora'; font-weight:700;}
+  .quick-actions{display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:12px; margin-top:8px;}
+  .quick-btn{
+    display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 14px; border-radius:12px; border:1px solid var(--gpx-border);
+    background:var(--gpx-surface-soft); color:var(--gpx-ink); font-weight:700; font-size:13px; text-decoration:none;
+  }
+  .quick-btn:hover{background:var(--gpx-surface);}
+
+  .tile-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin-top:20px;}
+  .tile{
+    display:block; text-decoration:none; color:inherit; background:var(--gpx-surface); border:1px solid var(--gpx-border);
+    border-radius:16px; padding:18px; box-shadow:var(--gpx-shadow); transition:.15s; position:relative; overflow:hidden;
+  }
+  .tile:hover{box-shadow:var(--gpx-shadow-lift); transform:translateY(-2px);}
+  .tile .tile-top{display:flex; align-items:center; gap:10px;}
+  .tile .tile-mark{
+    width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;
+  }
+  .tile .tile-name{font-family:'Sora'; font-weight:800; font-size:15.5px;}
+  .tile .tile-sub{font-size:11.5px; color:var(--gpx-ink-faint); margin-top:1px;}
+  .tile .tile-body{margin-top:14px; font-size:12.5px; color:var(--gpx-ink-dim); line-height:1.6; min-height:20px;}
+  .tile .tile-body b{color:var(--gpx-ink); font-family:'JetBrains Mono';}
+  .tile .tile-loading{color:var(--gpx-ink-faint); font-style:italic;}
+  .tile .tile-arrow{position:absolute; top:16px; right:16px; color:var(--gpx-ink-faint); font-size:13px;}
+
+  .section-title{font-family:'Sora'; font-weight:700; font-size:15px; margin:30px 0 12px;}
+  .today-list{display:flex; flex-direction:column; gap:8px;}
+  .today-row{
+    display:flex; align-items:center; gap:10px; background:var(--gpx-surface); border:1px solid var(--gpx-border);
+    border-radius:12px; padding:10px 13px; font-size:13px;
+  }
+  .today-row .dot{width:9px;height:9px;border-radius:3px;flex-shrink:0;}
+  .today-row .t-title{font-weight:700; flex:1;}
+  .today-row .t-time{font-family:'JetBrains Mono'; font-size:11px; color:var(--gpx-ink-faint);}
+  .empty-note{color:var(--gpx-ink-faint); font-size:12.5px; font-style:italic; padding:8px 2px;}
+</style>
+</head>
+<body data-page="home">
+
+<main class="dashboard-shell">
+  <section class="dashboard-hero">
+    <div class="hero-card">
+      <div class="profile-wrap">
+        <div class="avatar">HN</div>
+        <div class="hello">
+          <span class="eyebrow">Xin chào</span>
+          <h1 id="greetHeading">Chào bạn 👋</h1>
+          <p id="todayDateLabel"></p>
+          <div class="date-pill">● Mỗi ngày là một phiên bản mới</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="quote-card hero-card">
+      <div class="quote-label">Trích dẫn</div>
+      <p>“Hãy làm điều quan trọng trước, rồi để những thứ còn lại tự tìm chỗ của nó.”</p>
+      <div class="quote-by">— Bình yên trong nhịp sống</div>
+    </div>
+  </section>
+
+  <section class="dashboard-grid">
+    <article class="panel focus-panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Lịch làm việc</h2>
+        <span class="mini-tag">Nội dung</span>
+      </div>
+      <div class="focus-list" id="focusList"></div>
+    </article>
+
+    <article class="panel progress-panel">
+      <div class="panel-head">
+        <h2 class="panel-title">To do list</h2>
+        <span class="mini-tag">Khẩn</span>
+      </div>
+      <div class="progress-figure" id="todoProgressValue">0%</div>
+      <div class="meter"><span id="todoMeter" style="width:0%;"></span></div>
+      <div class="meta-row">
+        <span>Đã hoàn thành</span>
+        <strong id="todoProgressText">0 / 0</strong>
+      </div>
+    </article>
+
+    <article class="panel finance-panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Sổ thu chi</h2>
+        <span class="mini-tag">Tháng này</span>
+      </div>
+      <div class="snapshot-list">
+        <div class="snapshot-item"><span class="label">Thu nhập</span><span class="value" style="color:#0EA69E;">0 đ</span></div>
+        <div class="snapshot-item"><span class="label">Chi tiêu</span><span class="value" style="color:#F0932B;">0 đ</span></div>
+        <div class="snapshot-item"><span class="label">Tiết kiệm</span><span class="value" style="color:#3B82F6;">0 đ</span></div>
+      </div>
+    </article>
+  </section>
+
+  <div class="tile-grid">
+    <a class="tile" href="lich-tuan.html">
+      <div class="tile-top">
+        <div class="tile-mark" style="background:#E9F1FF;color:#3B82F6;">📅</div>
+        <div><div class="tile-name">Lịch tuần</div><div class="tile-sub">Lịch học · sự kiện · việc cần làm</div></div>
+      </div>
+      <div class="tile-body tile-loading" id="sum-calendar">Đang tải...</div>
+      <div class="tile-arrow">→</div>
+    </a>
+
+    <a class="tile" href="chi-tieu.html">
+      <div class="tile-top">
+        <div class="tile-mark" style="background:#FFF1DE;color:#F0932B;">💰</div>
+        <div><div class="tile-name">Sổ chi tiêu</div><div class="tile-sub">Thu chi · tiết kiệm · wishlist</div></div>
+      </div>
+      <div class="tile-body tile-loading" id="sum-expenses">Đang tải...</div>
+      <div class="tile-arrow">→</div>
+    </a>
+
+    <a class="tile" href="gia-su.html">
+      <div class="tile-top">
+        <div class="tile-mark" style="background:#EFEAFF;color:#7C5CFC;">📒</div>
+        <div><div class="tile-name">Ứng tuyển & Gia sư</div><div class="tile-sub">Ứng tuyển · lớp đang dạy · lương</div></div>
+      </div>
+      <div class="tile-body tile-loading" id="sum-tutoring">Đang tải...</div>
+      <div class="tile-arrow">→</div>
+    </a>
+
+    <a class="tile" href="muc-tieu.html">
+      <div class="tile-top">
+        <div class="tile-mark" style="background:#E3F7F5;color:#0EA69E;">🎯</div>
+        <div><div class="tile-name">Mục tiêu & Chứng chỉ</div><div class="tile-sub">Chứng chỉ · dự án · mục tiêu sống</div></div>
+      </div>
+      <div class="tile-body tile-loading" id="sum-goals">Đang tải...</div>
+      <div class="tile-arrow">→</div>
+    </a>
+  </div>
+
+  <div class="section-title">Hôm nay có gì</div>
+  <div class="today-list" id="todayList"><div class="empty-note">Đang tải...</div></div>
+</main>
+<script src="shared/index-page.js"></script>
+</body>
+</html>

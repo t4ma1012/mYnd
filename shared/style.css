@@ -1,0 +1,175 @@
+/* =========================================================================
+   SHARED STYLE — dùng chung cho toàn bộ app cá nhân (4 công cụ + trang chủ)
+   Đổi màu / theme ở ĐÂY là áp dụng cho mọi trang.
+   ========================================================================= */
+:root{
+  /* ---- bảng màu chính: xanh dương / baby blue ---- */
+  --gpx-blue-50:#F3F7FF;
+  --gpx-blue-100:#EAF1FF;
+  --gpx-blue-200:#D8E5FF;
+  --gpx-blue-300:#C1D5FF;
+  --gpx-blue-400:#9EBEFF;
+  --gpx-blue-500:#86A9F7;
+  --gpx-blue-600:#6A94E7;
+  --gpx-blue-700:#597CC9;
+  --gpx-navy-900:#11233B;
+  --gpx-navy-800:#1A2F52;
+
+  /* ---- theme sáng (mặc định) ---- */
+  --gpx-bg:#F5F8FD;
+  --gpx-surface:#FFFFFF;
+  --gpx-surface-soft:#F0F5FF;
+  --gpx-border:#DDE8F7;
+  --gpx-ink:#16233A;
+  --gpx-ink-dim:#5E6F90;
+  --gpx-ink-faint:#8EA0BF;
+  --gpx-accent:#7AA5F8;
+  --gpx-accent-ink:#FFFFFF;
+  --gpx-shadow:0 2px 10px rgba(20,40,80,0.06);
+  --gpx-shadow-lift:0 12px 28px rgba(20,40,80,0.1);
+}
+html[data-theme="dark"]{
+  --gpx-bg:#0B1A2A;
+  --gpx-surface:#112235;
+  --gpx-surface-soft:#162B40;
+  --gpx-border:#2B4366;
+  --gpx-ink:#EFF6FF;
+  --gpx-ink-dim:#C7D9F5;
+  --gpx-ink-faint:#8FA7CF;
+  --gpx-accent:#9DBDFF;
+  --gpx-accent-ink:#0C1728;
+  --gpx-shadow:0 2px 10px rgba(0,0,0,0.2);
+  --gpx-shadow-lift:0 14px 32px rgba(0,0,0,0.34);
+}
+
+html[data-theme="light"]{
+  --gpx-bg:#F5F8FD;
+  --gpx-surface:#FFFFFF;
+  --gpx-surface-soft:#EEF4FF;
+  --gpx-border:#DCE7F7;
+  --gpx-ink:#16233A;
+  --gpx-ink-dim:#5D6F8E;
+  --gpx-ink-faint:#8DA0BE;
+  --gpx-accent:#5E8EF8;
+  --gpx-accent-ink:#FFFFFF;
+}
+
+/* ---------- AUTH STATE ----------- */
+/* Ẩn nội dung bằng visibility + height, KHÔNG đụng vào display,
+   để giữ nguyên display gốc (flex/grid) mà mỗi trang tự định nghĩa cho .layout, .mini-grid, .quadrant-grid,... */
+body > *:not([data-gpx-chrome]){
+  visibility:hidden;
+  height:0;
+  overflow:hidden;
+}
+
+html.gpx-auth-checking body > *:not([data-gpx-chrome]),
+html.gpx-logged-out body > *:not([data-gpx-chrome]),
+html.gpx-authed body > *:not([data-gpx-chrome]){
+  visibility:visible;
+  height:auto;
+  overflow:visible;
+}
+
+/* ---------- LOGIN GATE ---------- */
+#gpx-authgate{
+  position:fixed; inset:0; z-index:9999; display:none; align-items:center; justify-content:center;
+  background:linear-gradient(160deg, var(--gpx-navy-900), var(--gpx-blue-700));
+  font-family:'Inter',sans-serif; padding:20px;
+}
+html.gpx-logged-out #gpx-authgate{ display:none; }
+#gpx-authgate.hidden{display:none;}
+.gpx-login-card{
+  width:340px; max-width:100%; background:var(--gpx-surface); border-radius:20px; padding:28px 26px;
+  box-shadow:0 30px 70px rgba(0,0,0,0.35); text-align:center;
+}
+.gpx-login-card .gpx-logo{
+  width:52px;height:52px;border-radius:14px;margin:0 auto 14px;
+  background:linear-gradient(135deg, var(--gpx-blue-400), var(--gpx-blue-700));
+  display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;
+}
+.gpx-login-card h2{margin:0 0 4px; font-size:18px; font-weight:800; color:var(--gpx-ink); font-family:'Sora',sans-serif;}
+.gpx-login-card p{margin:0 0 18px; font-size:12.5px; color:var(--gpx-ink-dim);}
+.gpx-login-card input{
+  width:100%; box-sizing:border-box; background:var(--gpx-surface-soft); border:1px solid var(--gpx-border);
+  color:var(--gpx-ink); border-radius:10px; padding:10px 12px; font-size:13.5px; margin-bottom:10px; outline:none;
+}
+.gpx-login-card input:focus{border-color:var(--gpx-accent);}
+.gpx-login-card button{
+  width:100%; background:var(--gpx-accent); color:var(--gpx-accent-ink); border:none; border-radius:10px;
+  padding:11px; font-size:13.5px; font-weight:700; cursor:pointer; transition:.15s;
+}
+.gpx-login-card button:hover{filter:brightness(1.08);}
+.gpx-login-card button:disabled{opacity:.6; cursor:default;}
+.gpx-login-err{color:#FCA5A5; font-size:12px; margin-top:10px; min-height:16px;}
+.gpx-login-note{margin-top:16px; font-size:10.5px; color:var(--gpx-ink-faint); line-height:1.5;}
+
+/* ---------- APP CONTENT WRAPPER ---------- */
+body{padding-bottom:64px;} /* chừa chỗ cho bottom nav trên mobile */
+@media (min-width:901px){ body{padding-bottom:0; padding-top:58px;} }
+
+/* ---------- TOP NAV (desktop/tablet) ---------- */
+#gpx-topnav{
+  display:none;
+}
+@media (min-width:901px){
+  #gpx-topnav{
+    display:flex; align-items:center; gap:4px; position:fixed; top:0; left:0; right:0; height:58px;
+    background:var(--gpx-surface); border-bottom:1px solid var(--gpx-border); z-index:500; padding:0 18px;
+    font-family:'Inter',sans-serif;
+  }
+  #gpx-topnav .gpx-brand{
+    font-family:'Sora',sans-serif; font-weight:800; font-size:15px; color:var(--gpx-ink); display:flex; align-items:center; gap:8px;
+    margin-right:18px; text-decoration:none;
+  }
+  #gpx-topnav .gpx-brand .mark{
+    width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--gpx-blue-400),var(--gpx-blue-700));
+    display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;flex-shrink:0;
+  }
+  #gpx-topnav a.gpx-link{
+    display:flex; align-items:center; gap:6px; padding:8px 13px; border-radius:9px; text-decoration:none;
+    color:var(--gpx-ink-dim); font-size:13px; font-weight:600; transition:.15s;
+  }
+  #gpx-topnav a.gpx-link:hover{background:var(--gpx-surface-soft); color:var(--gpx-ink);}
+  #gpx-topnav a.gpx-link.active{background:var(--gpx-accent); color:var(--gpx-accent-ink);}
+  #gpx-topnav .gpx-spacer{flex:1;}
+}
+
+/* ---------- BOTTOM NAV (mobile) ---------- */
+#gpx-bottomnav{
+  position:fixed; bottom:0; left:0; right:0; z-index:500; display:flex;
+  background:var(--gpx-surface); border-top:1px solid var(--gpx-border);
+  padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+  box-shadow:0 -4px 16px rgba(0,0,0,0.06);
+}
+@media (min-width:901px){ #gpx-bottomnav{display:none;} }
+#gpx-bottomnav a.gpx-blink{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; text-decoration:none;
+  color:var(--gpx-ink-faint); font-size:9.5px; font-weight:700; padding:6px 2px; border-radius:10px;
+  font-family:'Inter',sans-serif;
+}
+#gpx-bottomnav a.gpx-blink .ic{font-size:18px; line-height:1;}
+#gpx-bottomnav a.gpx-blink.active{color:var(--gpx-accent);}
+
+/* ---------- SHARED CONTROLS: theme toggle + sign out ---------- */
+.gpx-ctrl-btn{
+  width:34px;height:34px;border-radius:9px;border:1px solid var(--gpx-border);background:var(--gpx-surface-soft);
+  color:var(--gpx-ink-dim); display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;
+  transition:.15s; flex-shrink:0;
+}
+.gpx-ctrl-btn:hover{background:var(--gpx-border); color:var(--gpx-ink);}
+#gpx-mobile-controls{
+  position:fixed; top:10px; right:10px; z-index:490; display:flex; gap:6px;
+}
+@media (min-width:901px){ #gpx-mobile-controls{display:none;} }
+#gpx-topnav .gpx-topctrls{display:flex; gap:6px; align-items:center;}
+
+/* ---------- toast nhỏ báo trạng thái đồng bộ ---------- */
+#gpx-sync-toast{
+  position:fixed; bottom:76px; left:50%; transform:translateX(-50%) translateY(20px); z-index:600;
+  background:var(--gpx-ink); color:var(--gpx-bg); font-size:11.5px; font-weight:600; padding:7px 14px;
+  border-radius:99px; opacity:0; pointer-events:none; transition:.25s; font-family:'Inter',sans-serif;
+  white-space:nowrap;
+}
+@media (min-width:901px){ #gpx-sync-toast{bottom:16px;} }
+#gpx-sync-toast.show{opacity:1; transform:translateX(-50%) translateY(0);}

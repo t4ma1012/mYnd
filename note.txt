@@ -1,0 +1,18 @@
+ở chỗ gia sư:
+- mục đơn giá / giờ, sửa lại thành 1 ô ghi là số tiền (điền số tiền), 1 ô điền / giờ (điền số phút), tại vì có vài lớp 200k 90p nên nếu tính theo 60p là nó bị số lẻ á, sửa lại cho tôi
+- mục tổng hợp lương: chỗ TỔNG CỘNG á, làm sao cho nổi bật tí chứ đừng chỉ gạch ngang 1 đường thẳng nhu v
+-  với lại chỗ quản lí ứng tuyển, tôi muốn có thêm 2 mục để tôi paste ảnh hoặc là tải ảnh lên từ file á, vì kiểu như bằng chứng tôi đã nộp gmail, bằng chứng của cái tin tuyển dụng (vì có khả năng họ xóa bài tuyển dụng), kiểu vậy á, bạn tự suy nghĩ làm sao cho hợp lí đi rồi báo file để tôi sửa, với lại chỗ nộp attt á, ngành tôi thì làm gì có dạy đâu :v và chỗ ghi chú ý, chia thành mục cho tôi luôn, kiểu JD, yêu cầu, cơ hội,... nói chung tôi cũng ko rõ bạn tự sửa, với lại font chữ làm sao cho nó ko bị lỗi font tiếng việt đi, bạn làm sao mà nó đồng đều là được, chứ đừng chỗ in đậm chỗ ko á
+
+ở chỗ chi tiêu:
+- vì có những khoản chi tiêu là theo ngày á (chi phí ăn uống gồm ăn sáng, ăn trưa, ăn tối, ăn vặt + uống nước) á, mỗi cái đều có mục riêng, h phải chia sao cho hợp lí giờ
+- ở chế độ tối rồi mà khi ấn vào thêm giao dịch nó vẫn hiện ra màn hình trắng xóa, 
+- chỗ wishlist: có thêm thanh tiết kiệm đi, ví dụ mỗi ngày có tiền dư thì tôi sẽ bỏ vào thanh đó (thường là từ tiền ăn, hoặc là tiền nào đó tôi tiết kiệm được,thì thêm vô chỗ chỗ thanh đó á kiểu v),
+- với lại kiểu xóa dữ liệu là xóa hết dữ liệu luôn hay là ntn, tại vì mấy cái mức trần ngân sách thì tôi vẫn muốn giữ nguyên mỗi tháng á, khỏi đổi, chỉ cần đổi ở sổ thu chi thôi
+
+ở lịch tuần:
+- chỗ sự kiện mới, mục lặp lại: được phép tick chọn những ngày lặp lại chứ ko phải là chỉ có 1 ngày được lặp lại; với lại thêm mục note ở chỗ chỉnh sửa sự kiện nữa
+- đồng bộ chỗ todolist với mục trang chủ với, vì chỗ hôm nay có gì thì nó phải hiện các todo list cho tôi dễ theo dõi á, bao gồm cả tổng và hằng ngày luôn,
+- với lại toi không thấy khung giờ từ 23h-6h sáng vì nó bị che rồi, làm tất cả khung giờ cho tôi đi
+
+tổng quan: đừng làm chữ và màu chói mắt quá, sắp xếp logic dễ nhìn, tất cả phải theo format là ngày/tháng/năm
+với lại liệu có chỉnh sửa tên không gian của tôi thành mYnd được ko

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mYnd | Danh sách</title>
+  <link rel="stylesheet" href="shared/style.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="shared/firebase-config.js"></script>
+  <script src="shared/store.js"></script>
+  <script src="shared/app-shell.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --list-bg: #f4f7fc;
+      --list-surface: #ffffff;
+      --list-soft: #edf4ff;
+      --list-border: #dfeaf7;
+      --list-ink: #16233a;
+      --list-dim: #5b6c88;
+      --list-faint: #8aa0c0;
+      --list-accent: #3b82f6;
+      --list-accent-strong: #1d4ed8;
+      --list-good: #1ca972;
+      --list-good-soft: #eafaf4;
+      --list-bad: #ef5d5d;
+      --list-bad-soft: #fff0f0;
+      --list-warning: #f2a93b;
+      --list-warning-soft: #fff7e8;
+      --list-shadow: 0 10px 24px rgba(17, 31, 58, 0.08);
+      --list-radius: 16px;
+    }
+
+    html[data-theme="dark"] {
+      --list-bg: #0b1626;
+      --list-surface: #101e33;
+      --list-soft: #12253f;
+      --list-border: #1e3252;
+      --list-ink: #eaf2ff;
+      --list-dim: #93a8cc;
+      --list-faint: #5d7196;
+      --list-accent: #60a5fa;
+      --list-accent-strong: #93c5fd;
+      --list-good: #34d399;
+      --list-good-soft: rgba(52, 211, 153, 0.12);
+      --list-bad: #f87171;
+      --list-bad-soft: rgba(248, 113, 113, 0.12);
+      --list-warning: #fbbf24;
+      --list-warning-soft: rgba(251, 191, 36, 0.12);
+      --list-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--list-bg);
+      color: var(--list-ink);
+      font-family: 'Inter', sans-serif;
+    }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .display { font-family: 'Space Grotesk', sans-serif; }
+
+    .lists-page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 22px 80px;
+    }
+
+    .lists-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--list-accent);
+      margin-bottom: 8px;
+    }
+
+    .lists-title {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 40px);
+      line-height: 1.1;
+      letter-spacing: -0.04em;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .lists-sub {
+      margin: 2px 0 0;
+      color: var(--list-dim);
+      font-size: 13px;
+    }
+
+    .btn {
+      border: 1px solid var(--list-border);
+      background: var(--list-surface);
+      color: var(--list-ink);
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.16s ease;
+      box-shadow: var(--list-shadow);
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--list-accent), var(--list-accent-strong));
+      border-color: transparent;
+      color: #fff;
+    }
+    .btn-ghost {
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .list-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .tab-btn {
+      padding: 10px 14px;
+      border: 1px solid var(--list-border);
+      background: var(--list-surface);
+      color: var(--list-dim);
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: 0.15s ease;
+    }
+    .tab-btn.active {
+      background: var(--list-soft);
+      border-color: transparent;
+      color: var(--list-ink);
+      box-shadow: var(--list-shadow);
+    }
+
+    .list-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(300px, 0.9fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--list-surface);
+      border: 1px solid var(--list-border);
+      border-radius: var(--list-radius);
+      box-shadow: var(--list-shadow);
+    }
+
+    .list-panel {
+      padding: 18px;
+    }
+
+    .list-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .list-card {
+      border: 1px solid var(--list-border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+      border-radius: 14px;
+      padding: 14px;
+      min-height: 132px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .item-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--list-soft);
+      color: var(--list-accent-strong);
+    }
+
+    .item-name {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 800;
+      line-height: 1.3;
+    }
+
+    .muted {
+      color: var(--list-dim);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .item-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: auto;
+    }
+
+    .mini-tag {
+      padding: 5px 7px;
+      border-radius: 8px;
+      background: var(--list-soft);
+      color: var(--list-dim);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+    .status-planned { background: var(--list-soft); color: var(--list-accent-strong); }
+    .status-watched, .status-visited, .status-tried, .status-favorite { background: var(--list-good-soft); color: var(--list-good); }
+    .status-wish, .status-want { background: var(--list-warning-soft); color: var(--list-warning); }
+    .status-dropped { background: var(--list-bad-soft); color: var(--list-bad); }
+
+    .empty-state {
+      border: 1px dashed var(--list-border);
+      background: rgba(59, 130, 246, 0.03);
+      border-radius: 14px;
+      padding: 28px 18px;
+      text-align: center;
+      color: var(--list-dim);
+      font-size: 14px;
+    }
+
+    .form-panel {
+      padding: 18px;
+      position: sticky;
+      top: 18px;
+    }
+
+    .form-panel h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+      margin-bottom: 12px;
+    }
+    .field label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--list-dim);
+    }
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      border: 1px solid var(--list-border);
+      border-radius: 10px;
+      background: var(--list-soft);
+      color: var(--list-ink);
+      padding: 10px 12px;
+      font: inherit;
+      resize: vertical;
+    }
+    .field textarea { min-height: 82px; }
+
+    .form-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
+    .card-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .icon-btn {
+      width: 30px;
+      height: 30px;
+      border: 1px solid var(--list-border);
+      border-radius: 9px;
+      background: var(--list-soft);
+      color: var(--list-dim);
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    @media (max-width: 920px) {
+      .list-layout {
+        grid-template-columns: 1fr;
+      }
+      .form-panel { position: static; }
+    }
+  </style>
+</head>
+<body data-page="lists">
+  <main class="lists-page">
+    <header class="lists-header">
+      <div>
+        <div class="eyebrow">✨ Danh sách</div>
+        <h1 class="lists-title">Phim · Nơi đi chơi</h1>
+        <p class="lists-sub">Ghi nhanh nội dung muốn xem, nơi muốn đi, và những phim đang theo dõi.</p>
+      </div>
+      <button id="openAddForm" class="btn btn-primary" type="button">+ Thêm mục</button>
+    </header>
+
+    <nav class="list-tabs" aria-label="List categories">
+      <button class="tab-btn active" type="button" data-type="movie">🎬 Phim / Nội dung</button>
+      <button class="tab-btn" type="button" data-type="place">📍 Nơi đi chơi</button>
+    </nav>
+
+    <section class="list-layout">
+      <div class="panel list-panel">
+        <div id="emptyState" class="empty-state">Chưa có mục nào trong danh sách này. Hãy thêm thứ đầu tiên nhé.</div>
+        <div id="listGrid" class="list-grid" aria-live="polite"></div>
+      </div>
+
+      <aside class="panel form-panel">
+        <h2 id="formTitle">Thêm phim</h2>
+        <form id="listForm">
+          <input type="hidden" id="listId">
+
+          <div class="field">
+            <label for="listType">Loại</label>
+            <select id="listType">
+              <option value="movie">Phim / Nội dung</option>
+              <option value="place">Nơi đi chơi</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="listName">Tên</label>
+            <input id="listName" type="text" placeholder="Ví dụ: Dune: Part Two" required>
+          </div>
+
+          <div class="field">
+            <label for="listStatus">Trạng thái</label>
+            <select id="listStatus"></select>
+          </div>
+
+          <div id="movieProgressFields" class="field" style="display:none;">
+            <label>Tiến độ phim / mùa</label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+              <input id="movieSeason" type="number" min="1" step="1" placeholder="Mùa">
+              <input id="movieCurrentEpisode" type="number" min="0" step="1" placeholder="Tập hiện tại">
+              <input id="movieTotalEpisodes" type="number" min="1" step="1" placeholder="Tổng tập">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="listCategory">Danh mục / nơi</label>
+            <input id="listCategory" type="text" placeholder="Ví dụ: hành động, Hà Nội, cà phê">
+          </div>
+
+          <div class="field">
+            <label for="listNotes">Ghi chú</label>
+            <textarea id="listNotes" placeholder="Bạn muốn xem vì lý do gì?"></textarea>
+          </div>
+
+          <div class="field">
+            <label for="listLink">Link</label>
+            <input id="listLink" type="url" placeholder="https://...">
+          </div>
+
+          <div class="form-actions">
+            <button id="cancelForm" class="btn btn-ghost" type="button">Hủy</button>
+            <button class="btn btn-primary" type="submit">Lưu</button>
+          </div>
+        </form>
+      </aside>
+    </section>
+  </main>
+  <script src="shared/danh-sach-page.js"></script>
+</body>
+</html>

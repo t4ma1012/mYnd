@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared/style.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="shared/firebase-config.js"></script>
+<script src="shared/store.js"></script>
+<script src="shared/app-shell.js"></script>
+
+<title>mYnd | Mục tiêu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F5F0;
+  --surface:#FFFFFF;
+  --surface-soft:#FBFAF6;
+  --border:#E7E2D6;
+  --ink:#20242C;
+  --ink-dim:#6B7280;
+  --ink-faint:#9CA3AF;
+
+  --cert:#8F82E8; --cert-soft:#EFEAFF;
+  --project:#DCA15C; --project-soft:#FFF1DE;
+  --life:#6BB8B2; --life-soft:#E3F7F5;
+
+  --green:#1FAA59; --green-soft:#E5F8EC;
+  --red:#E64545; --red-soft:#FDEAEA;
+  --blue:#3B82F6; --blue-soft:#E9F1FF;
+  --gray:#8A93A3; --gray-soft:#F0F1F2;
+  --amber:#D97706; --amber-soft:#FEF3E2;
+
+  --radius:14px;
+  --shadow:0 2px 10px rgba(30,25,10,0.06);
+  --shadow-lift:0 10px 28px rgba(30,25,10,0.14);
+}
+html[data-theme="dark"]{
+  --bg:#0B1626;
+  --surface:#101E33;
+  --surface-soft:#0D1A2C;
+  --border:#1E3252;
+  --ink:#EAF2FF;
+  --ink-dim:#93A8CC;
+  --ink-faint:#5D7196;
+  --shadow:0 2px 10px rgba(0,0,0,0.3);
+  --shadow-lift:0 12px 30px rgba(0,0,0,0.45);
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;
+  background:var(--bg);
+  background-image:
+    radial-gradient(circle at 8% 0%, rgba(124,92,252,0.06), transparent 32%),
+    radial-gradient(circle at 95% 10%, rgba(240,147,43,0.06), transparent 32%),
+    radial-gradient(circle at 50% 100%, rgba(14,166,158,0.05), transparent 40%);
+  color:var(--ink);
+  font-family:'Inter',sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:'JetBrains Mono',monospace;}
+.display{font-family:'Sora',sans-serif;}
+button{font-family:inherit;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#DCD5C4;border-radius:6px;}
+::-webkit-scrollbar-thumb:hover{background:#C9C0A9;}
+
+/* ---------- HEADER ---------- */
+header{padding:22px 26px 0; max-width:1280px; margin:0 auto;}
+.header-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.brand-mark{
+  width:42px;height:42px;border-radius:12px;flex-shrink:0;
+  background:linear-gradient(135deg, var(--cert), var(--life));
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+  box-shadow:var(--shadow);
+}
+.header-title h1{font-family:'Sora';font-weight:800;font-size:22px;margin:0;letter-spacing:-0.3px;}
+.header-title p{margin:2px 0 0;font-size:12.5px;color:var(--ink-dim);}
+.header-spacer{flex:1;}
+.reset-btn{
+  border:1px solid var(--border); background:var(--surface); color:var(--ink-dim);
+  padding:8px 12px; border-radius:9px; font-size:12px; font-weight:600; cursor:pointer; transition:.15s;
+}
+.reset-btn:hover{border-color:var(--red); color:var(--red); background:var(--red-soft);}
+
+.tabs{display:flex; gap:8px; margin-top:20px; border-bottom:1px solid var(--border); overflow-x:auto;}
+.tab-btn{
+  display:flex; align-items:center; gap:7px; padding:11px 16px; border:none; background:transparent;
+  color:var(--ink-dim); font-weight:700; font-size:13.5px; cursor:pointer; border-bottom:3px solid transparent;
+  white-space:nowrap; transition:.15s; font-family:'Sora';
+}
+.tab-btn .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tab-btn:hover{color:var(--ink);}
+.tab-btn.active{color:var(--ink); border-bottom-color:var(--tab-color, var(--ink));}
+
+main{max-width:1280px; margin:0 auto; padding:22px 26px 60px;}
+
+/* ---------- STAT CARDS ---------- */
+.stats-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:22px;}
+.stat-card{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px;
+  box-shadow:var(--shadow);
+}
+.stat-card .stat-label{font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.4px; font-weight:600;}
+.stat-card .stat-value{font-family:'Sora'; font-weight:800; font-size:24px; margin-top:4px;}
+.stat-card .stat-sub{font-size:11px; color:var(--ink-faint); margin-top:2px;}
+
+/* ---------- TOOLBAR ---------- */
+.toolbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:10px; flex-wrap:wrap;}
+.section-heading{font-family:'Sora'; font-weight:700; font-size:16px;}
+.btn{
+  border:1px solid var(--border); background:var(--surface); color:var(--ink);
+  padding:9px 16px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; transition:.15s;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.btn:hover{border-color:#C9C0A9; background:var(--surface-soft);}
+.btn-solid{color:#fff; border:none;}
+.btn-ghost-danger{background:transparent;border:1px solid var(--border);color:var(--red);}
+.btn-ghost-danger:hover{background:var(--red-soft);border-color:var(--red);}
+.btn-sm{padding:6px 10px; font-size:12px; border-radius:8px;}
+.btn-block{width:100%; justify-content:center;}
+.icon-btn{
+  width:30px;height:30px;border-radius:8px;border:1px solid var(--border);
+  background:var(--surface); color:var(--ink-dim); display:flex;align-items:center;justify-content:center;
+  cursor:pointer; transition:.15s; flex-shrink:0;
+}
+.icon-btn:hover{background:var(--surface-soft); color:var(--ink);}
+
+/* ---------- GOAL CARDS ---------- */
+.goal-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(360px,1fr)); gap:16px;}
+.goal-card{
+  background:var(--surface); border:1px solid var(--border); border-left:5px solid var(--gl-color,var(--gray));
+  border-radius:var(--radius); box-shadow:var(--shadow); transition:.15s; overflow:hidden;
+}
+.goal-card:hover{box-shadow:var(--shadow-lift);}
+.goal-card-body{padding:16px 17px 14px;}
+.goal-card-head{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+.goal-badges{display:flex; gap:6px; flex-wrap:wrap; align-items:center;}
+.badge{
+  font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:99px; white-space:nowrap;
+  background:var(--gl-bg,var(--gray-soft)); color:var(--gl-color,var(--gray));
+}
+.status-badge{font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:99px; white-space:nowrap;}
+.status-ahead{background:var(--green-soft); color:var(--green);}
+.status-ontrack{background:var(--blue-soft); color:var(--blue);}
+.status-behind{background:var(--amber-soft); color:var(--amber);}
+.status-overdue{background:var(--red-soft); color:var(--red);}
+.status-done{background:var(--gray-soft); color:var(--gray);}
+.goal-actions{display:flex; gap:5px; flex-shrink:0;}
+.goal-name{font-family:'Sora'; font-weight:800; font-size:16.5px; margin:9px 0 0;}
+.goal-note{font-size:12px; color:var(--ink-dim); margin-top:4px; line-height:1.4; font-style:italic;}
+
+.progress-block{margin-top:13px;}
+.progress-label{display:flex; justify-content:space-between; font-size:11.5px; color:var(--ink-dim); margin-bottom:5px; font-family:'JetBrains Mono';}
+.progress-bar{height:9px; border-radius:99px; background:var(--surface-soft); border:1px solid var(--border); overflow:hidden;}
+.progress-fill{height:100%; border-radius:99px; background:var(--gl-color,var(--gray)); transition:.3s;}
+
+.stat-grid{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--border); margin-top:13px;
+  border-radius:10px; overflow:hidden; border:1px solid var(--border);
+}
+.stat-grid .cell{background:var(--surface-soft); padding:9px 6px; text-align:center;}
+.stat-grid .cell .lbl{font-size:9px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.3px;}
+.stat-grid .cell .val{font-family:'JetBrains Mono'; font-weight:700; font-size:12px; margin-top:3px; line-height:1.25;}
+
+.pace-note{
+  margin-top:11px; font-size:12px; color:var(--ink-dim); background:var(--surface-soft); border:1px solid var(--border);
+  border-radius:9px; padding:9px 11px; line-height:1.5;
+}
+.pace-note b{color:var(--ink);}
+.pace-note.warn{background:var(--amber-soft); border-color:transparent; color:#7A4A05;}
+.pace-note.warn b{color:#7A4A05;}
+.pace-note.late{background:var(--red-soft); border-color:transparent; color:#8A2323;}
+.pace-note.late b{color:#8A2323;}
+
+.week-row{display:flex; align-items:center; gap:8px; margin-top:11px; font-size:12px; color:var(--ink-dim);}
+.week-dots{display:flex; gap:4px;}
+.week-dot{width:11px;height:11px;border-radius:3px; background:var(--gray-soft); border:1px solid var(--border);}
+.week-dot.filled{background:var(--gl-color,var(--gray)); border-color:var(--gl-color,var(--gray));}
+
+.goal-card-actions{display:flex; gap:6px; margin-top:13px; flex-wrap:wrap;}
+
+/* ---------- MILESTONES ---------- */
+.milestones-wrap{border-top:1px solid var(--border); background:var(--surface-soft);}
+.milestones-toggle{
+  display:flex; align-items:center; justify-content:space-between; padding:10px 17px; cursor:pointer;
+  font-size:12.5px; font-weight:700; color:var(--ink-dim); font-family:'Sora';
+}
+.milestones-toggle:hover{color:var(--ink);}
+.milestones-toggle .chev{transition:.15s;}
+.milestones-toggle.open .chev{transform:rotate(90deg);}
+.milestones-body{display:none; padding:0 17px 14px;}
+.milestones-body.open{display:block;}
+.milestone-list{display:flex; flex-direction:column; gap:6px; margin-bottom:8px;}
+.milestone-row{
+  display:flex; align-items:flex-start; gap:8px; background:var(--surface); border:1px solid var(--border);
+  border-radius:9px; padding:8px 10px; font-size:12.5px;
+}
+.milestone-row input[type=checkbox]{margin-top:2px; accent-color:var(--gl-color,var(--ink)); cursor:pointer; flex-shrink:0;}
+.milestone-row .m-title{flex:1; line-height:1.35;}
+.milestone-row.done .m-title{color:var(--ink-faint); text-decoration:line-through;}
+.milestone-row .m-due{font-family:'JetBrains Mono'; font-size:10.5px; color:var(--ink-faint); white-space:nowrap; margin-top:1px;}
+.milestone-row .m-due.late{color:var(--red);}
+.milestone-row .m-del{color:var(--ink-faint); cursor:pointer; font-size:13px; padding:0 2px; flex-shrink:0;}
+.milestone-row .m-del:hover{color:var(--red);}
+.milestone-empty{font-size:11.5px; color:var(--ink-faint); font-style:italic; padding:4px 2px;}
+.milestone-add-row{display:flex; gap:6px;}
+.milestone-add-row input[type=text]{flex:1;}
+.milestone-add-row input, .milestone-add-row select{
+  background:var(--surface); border:1px solid var(--border); color:var(--ink); border-radius:8px;
+  padding:7px 9px; font-size:12px; font-family:'Inter'; outline:none;
+}
+.milestone-add-row input:focus{border-color:var(--ink);}
+
+/* ---------- SESSION LOG ---------- */
+.sessions-wrap{border-top:1px solid var(--border); background:var(--surface-soft);}
+.session-list{display:flex; flex-direction:column; gap:6px; padding:0 17px 14px;}
+.session-row{
+  display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--surface);
+  border:1px solid var(--border); border-radius:9px; padding:7px 10px; font-size:12px;
+}
+.session-row .s-left{display:flex; flex-direction:column; gap:1px;}
+.session-row .s-date{font-family:'JetBrains Mono'; font-weight:700; font-size:11.5px;}
+.session-row .s-note{color:var(--ink-faint); font-size:11px; font-style:italic;}
+.session-row .s-right{display:flex; align-items:center; gap:8px; flex-shrink:0;}
+.session-row .s-hours{font-family:'JetBrains Mono'; font-weight:700; color:var(--gl-color,var(--ink));}
+.session-row .s-del{color:var(--ink-faint); cursor:pointer; font-size:13px;}
+.session-row .s-del:hover{color:var(--red);}
+
+.empty-state{
+  text-align:center; padding:50px 20px; color:var(--ink-faint); font-size:13px; border:1.5px dashed var(--border);
+  border-radius:var(--radius); background:var(--surface-soft);
+}
+.empty-state .big{font-size:34px; margin-bottom:8px;}
+
+/* ---------- MODAL ---------- */
+.overlay{
+  position:fixed; inset:0; background:rgba(20,16,8,0.45); backdrop-filter:blur(2px);
+  display:flex; align-items:center; justify-content:center; z-index:100; opacity:0; pointer-events:none;
+  transition:.15s; padding:20px; overflow-y:auto;
+}
+.overlay.open{opacity:1; pointer-events:auto;}
+.modal{
+  width:480px; max-width:100%; max-height:88vh; overflow-y:auto; background:var(--surface);
+  border:1px solid var(--border); border-radius:18px; padding:24px;
+  transform:translateY(8px) scale(.98); transition:.15s; box-shadow:0 30px 60px rgba(0,0,0,0.25);
+  margin:auto;
+}
+.overlay.open .modal{transform:translateY(0) scale(1);}
+.modal h3{margin:0 0 4px 0; font-family:'Sora'; font-size:17px; font-weight:800;}
+.modal .modal-sub{font-size:12px; color:var(--ink-dim); margin-bottom:16px;}
+.field{margin-bottom:13px;}
+.field label{display:block; font-size:11px; color:var(--ink-dim); margin-bottom:6px; font-weight:700; text-transform:uppercase; letter-spacing:.3px;}
+.field input[type=text], .field input[type=number], .field input[type=date], .field select, .field textarea{
+  width:100%; background:var(--surface-soft); border:1px solid var(--border); color:var(--ink);
+  border-radius:9px; padding:9px 11px; font-size:13px; font-family:'Inter'; outline:none;
+}
+.field textarea{resize:vertical; min-height:56px;}
+.field input:focus, .field select:focus, .field textarea:focus{border-color:var(--ink);}
+.row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;}
+.modal-actions{display:flex; gap:8px; margin-top:18px;}
+.modal-actions .btn{flex:1; justify-content:center;}
+.hint{font-size:10.5px; color:var(--ink-faint); margin-top:4px; line-height:1.4;}
+
+.type-seg{display:flex; gap:6px;}
+.type-seg button{
+  flex:1; border:1px solid var(--border); background:var(--surface-soft); color:var(--ink-dim);
+  padding:9px 6px; border-radius:9px; font-size:11.5px; font-weight:700; cursor:pointer; transition:.15s;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+}
+.type-seg button.active{color:#fff; border-color:transparent;}
+.type-seg button[data-type="certificate"].active{background:var(--cert);}
+.type-seg button[data-type="project"].active{background:var(--project);}
+.type-seg button[data-type="life"].active{background:var(--life);}
+
+.duration-quick{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;}
+.duration-quick button{
+  border:1px solid var(--border); background:var(--surface-soft); color:var(--ink-dim);
+  padding:6px 10px; border-radius:99px; font-size:11px; font-weight:600; cursor:pointer; transition:.15s;
+}
+.duration-quick button:hover{border-color:var(--ink); color:var(--ink);}
+.computed-box{
+  margin-top:6px; background:var(--surface-soft); border:1px solid var(--border); border-radius:9px;
+  padding:9px 11px; font-size:11.5px; color:var(--ink-dim); font-family:'JetBrains Mono'; line-height:1.6;
+}
+.computed-box b{color:var(--ink); font-family:'Sora';}
+
+@media (max-width:700px){
+  header, main{padding-left:14px; padding-right:14px;}
+  .goal-grid{grid-template-columns:1fr;}
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
+  .row2, .row3{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body data-page="goals">
+
+<header>
+  <div class="header-top">
+    <div class="brand-mark">🎯</div>
+    <div class="header-title">
+      <h1>Theo Dõi Mục Tiêu & Chứng Chỉ</h1>
+      <p>Chứng chỉ · Dự án lớn · Mục tiêu cuộc sống — chia nhỏ, lên lịch, theo dõi tiến độ</p>
+    </div>
+    <div class="header-spacer"></div>
+    <button class="reset-btn" id="exportBtn">⬇ Xuất JSON</button>
+    <button class="reset-btn" id="resetBtn">Xoá hết dữ liệu</button>
+  </div>
+
+  <div class="stats-row" id="overviewStats"></div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="all" style="--tab-color:var(--ink)"><span class="dot" style="background:var(--ink)"></span>Tất cả</button>
+    <button class="tab-btn" data-tab="certificate" style="--tab-color:var(--cert)"><span class="dot" style="background:var(--cert)"></span>Chứng chỉ</button>
+    <button class="tab-btn" data-tab="project" style="--tab-color:var(--project)"><span class="dot" style="background:var(--project)"></span>Dự án lớn</button>
+    <button class="tab-btn" data-tab="life" style="--tab-color:var(--life)"><span class="dot" style="background:var(--life)"></span>Mục tiêu cuộc sống</button>
+  </div>
+</header>
+
+<main>
+  <div class="toolbar">
+    <div class="section-heading" id="sectionHeading">Tất cả mục tiêu</div>
+    <button class="btn btn-solid" style="background:var(--ink)" id="addGoalBtn">+ Thêm mục tiêu</button>
+  </div>
+  <div class="goal-grid" id="goalGrid"></div>
+  <div class="empty-state" id="emptyState" style="display:none">
+    <div class="big">🌱</div>
+    Chưa có mục tiêu nào ở mục này.<br>Bấm "+ Thêm mục tiêu" để bắt đầu lên kế hoạch nhé.
+  </div>
+</main>
+
+<!-- ===== GOAL MODAL (Thêm / Sửa mục tiêu) ===== -->
+<div class="overlay" id="goalOverlay">
+  <div class="modal">
+    <h3 id="goalModalTitle">Thêm mục tiêu</h3>
+    <div class="modal-sub">Điền thông tin để hệ thống tự tính nhịp học cần thiết mỗi tuần.</div>
+
+    <div class="field">
+      <label>Loại mục tiêu</label>
+      <div class="type-seg" id="typeSeg">
+        <button data-type="certificate" class="active">🎓<span>Chứng chỉ</span></button>
+        <button data-type="project">🚀<span>Dự án lớn</span></button>
+        <button data-type="life">🌟<span>Cuộc sống</span></button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Tên mục tiêu</label>
+      <input type="text" id="gf-name" placeholder="VD: Chứng chỉ AWS Solutions Architect">
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>Ngày bắt đầu</label>
+        <input type="date" id="gf-start">
+      </div>
+      <div class="field">
+        <label>Hạn hoàn thành</label>
+        <input type="date" id="gf-target">
+      </div>
+    </div>
+    <div class="duration-quick" id="durationQuick">
+      <button data-months="1">1 tháng</button>
+      <button data-months="3">3 tháng</button>
+      <button data-months="6">6 tháng</button>
+      <button data-months="12">1 năm</button>
+      <button data-months="18">1.5 năm</button>
+      <button data-months="24">2 năm</button>
+    </div>
+
+    <div class="row2" style="margin-top:13px;">
+      <div class="field">
+        <label>Tổng số giờ cần học</label>
+        <input type="number" id="gf-hours-total" min="0" step="1" placeholder="VD: 300">
+      </div>
+      <div class="field">
+        <label>Số giờ mỗi buổi học</label>
+        <input type="number" id="gf-hours-session" min="0" step="0.5" placeholder="VD: 1.5">
+      </div>
+    </div>
+    <div class="hint">Không rõ tổng số giờ chính xác cũng không sao — cứ điền ước lượng, sau này sửa lại được. Bỏ trống nếu muốn theo dõi bằng mốc nhỏ (milestone) thay vì số giờ.</div>
+
+    <div class="computed-box" id="goalComputedBox" style="display:none;"></div>
+
+    <div class="field" style="margin-top:13px;">
+      <label>Ghi chú</label>
+      <textarea id="gf-note" placeholder="Mô tả ngắn, lý do theo đuổi mục tiêu, tài liệu tham khảo..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" id="goalCancelBtn">Huỷ</button>
+      <button class="btn btn-solid" style="background:var(--ink)" id="goalSaveBtn">Lưu mục tiêu</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SESSION MODAL (Ghi buổi học) ===== -->
+<div class="overlay" id="sessionOverlay">
+  <div class="modal">
+    <h3>Ghi buổi học</h3>
+    <div class="modal-sub" id="sessionGoalName"></div>
+    <div class="row2">
+      <div class="field">
+        <label>Ngày học</label>
+        <input type="date" id="sf-date">
+      </div>
+      <div class="field">
+        <label>Số giờ đã học</label>
+        <input type="number" id="sf-hours" min="0" step="0.25">
+      </div>
+    </div>
+    <div class="field">
+      <label>Ghi chú (không bắt buộc)</label>
+      <input type="text" id="sf-note" placeholder="VD: Hoàn thành chương 3, làm 20 câu trắc nghiệm...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="sessionCancelBtn">Huỷ</button>
+      <button class="btn btn-solid" style="background:var(--ink)" id="sessionSaveBtn">Lưu buổi học</button>
+    </div>
+  </div>
+</div>
+<script src="shared/muc-tieu-page.js"></script>
+</body>
+</html>

@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared/style.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="shared/firebase-config.js"></script>
+<script src="shared/store.js"></script>
+<script src="shared/app-shell.js"></script>
+
+<title>mYnd | Gia sư</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F5F0;
+  --surface:#FFFFFF;
+  --surface-soft:#FBFAF6;
+  --border:#E7E2D6;
+  --ink:#20242C;
+  --ink-dim:#6B7280;
+  --ink-faint:#9CA3AF;
+
+  --teach:#5BB7A9; --teach-soft:#E3F7F5;
+  --cyber:#8E7AEF; --cyber-soft:#EFEAFF;
+  --class:#E0A85B; --class-soft:#FFF1DE;
+  --summary:#E77887; --summary-soft:#FFE9EC;
+
+  --green:#1FAA59; --green-soft:#E5F8EC;
+  --red:#E64545; --red-soft:#FDEAEA;
+  --blue:#3B82F6; --blue-soft:#E9F1FF;
+  --gray:#8A93A3; --gray-soft:#F0F1F2;
+  --purple:#A855F7; --purple-soft:#F4EAFE;
+
+  --radius:14px;
+  --shadow:0 2px 10px rgba(30,25,10,0.06);
+  --shadow-lift:0 10px 28px rgba(30,25,10,0.14);
+}
+html[data-theme="dark"]{
+  --bg:#0B1626;
+  --surface:#101E33;
+  --surface-soft:#0D1A2C;
+  --border:#1E3252;
+  --ink:#EAF2FF;
+  --ink-dim:#93A8CC;
+  --ink-faint:#5D7196;
+  --shadow:0 2px 10px rgba(0,0,0,0.3);
+  --shadow-lift:0 12px 30px rgba(0,0,0,0.45);
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;
+  background:var(--bg);
+  background-image:
+    radial-gradient(circle at 8% 0%, rgba(14,166,158,0.06), transparent 32%),
+    radial-gradient(circle at 95% 10%, rgba(124,92,252,0.06), transparent 32%),
+    radial-gradient(circle at 50% 100%, rgba(240,147,43,0.05), transparent 40%);
+  color:var(--ink);
+  font-family:'Inter',sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+*{font-family:inherit;}
+.mono{font-family:'JetBrains Mono',monospace;}
+.display{font-family:'Sora',sans-serif;}
+button,input,select,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#DCD5C4;border-radius:6px;}
+::-webkit-scrollbar-thumb:hover{background:#C9C0A9;}
+
+/* ---------- HEADER ---------- */
+header{
+  padding:22px 26px 0;
+  max-width:1280px;
+  margin:0 auto;
+}
+.header-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.brand-mark{
+  width:42px;height:42px;border-radius:12px;flex-shrink:0;
+  background:linear-gradient(135deg, var(--teach), var(--cyber));
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+  box-shadow:var(--shadow);
+}
+.header-title h1{font-family:'Sora';font-weight:800;font-size:22px;margin:0;letter-spacing:-0.3px;}
+.header-title p{margin:2px 0 0;font-size:12.5px;color:var(--ink-dim);}
+.header-spacer{flex:1;}
+.reset-btn{
+  border:1px solid var(--border); background:var(--surface); color:var(--ink-dim);
+  padding:8px 12px; border-radius:9px; font-size:12px; font-weight:600; cursor:pointer; transition:.15s;
+}
+.reset-btn:hover{border-color:var(--red); color:var(--red); background:var(--red-soft);}
+
+.tabs{display:flex; gap:8px; margin-top:20px; border-bottom:1px solid var(--border); overflow-x:auto;}
+.tab-btn{
+  display:flex; align-items:center; gap:7px; padding:11px 16px; border:none; background:transparent;
+  color:var(--ink-dim); font-weight:700; font-size:13.5px; cursor:pointer; border-bottom:3px solid transparent;
+  white-space:nowrap; transition:.15s; font-family:'Sora';
+}
+.tab-btn .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tab-btn:hover{color:var(--ink);}
+.tab-btn.active{color:var(--ink); border-bottom-color:var(--tab-color, var(--ink));}
+
+main{max-width:1280px; margin:0 auto; padding:22px 26px 60px;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* ---------- STAT CARDS ---------- */
+.stats-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:20px;}
+.stat-card{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px;
+  box-shadow:var(--shadow);
+}
+.stat-card .stat-label{font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.4px; font-weight:600;}
+.stat-card .stat-value{font-family:'Sora'; font-weight:800; font-size:24px; margin-top:4px;}
+
+/* ---------- TOOLBAR ---------- */
+.toolbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:10px; flex-wrap:wrap;}
+.section-heading{font-family:'Sora'; font-weight:700; font-size:16px;}
+.btn{
+  border:1px solid var(--border); background:var(--surface); color:var(--ink);
+  padding:9px 16px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; transition:.15s;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.btn:hover{border-color:#C9C0A9; background:var(--surface-soft);}
+.btn-solid{color:#fff; border:none;}
+.btn-ghost-danger{background:transparent;border:1px solid var(--border);color:var(--red);}
+.btn-ghost-danger:hover{background:var(--red-soft);border-color:var(--red);}
+.btn-sm{padding:6px 10px; font-size:12px; border-radius:8px;}
+.icon-btn{
+  width:30px;height:30px;border-radius:8px;border:1px solid var(--border);
+  background:var(--surface); color:var(--ink-dim); display:flex;align-items:center;justify-content:center;
+  cursor:pointer; transition:.15s; flex-shrink:0;
+}
+.icon-btn:hover{background:var(--surface-soft); color:var(--ink);}
+
+/* ---------- APPLICATION CARDS ---------- */
+.app-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px;}
+.app-card{
+  background:var(--surface); border:1px solid var(--border); border-left:5px solid var(--st-color,var(--gray));
+  border-radius:var(--radius); padding:14px 15px; box-shadow:var(--shadow); transition:.15s; cursor:pointer;
+}
+.app-card:hover{box-shadow:var(--shadow-lift); transform:translateY(-1px);}
+.app-card-head{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+.app-org{font-family:'Sora'; font-weight:700; font-size:14.5px;}
+.app-position{color:var(--ink-dim); font-size:12.5px; margin-top:1px;}
+.badge{
+  font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:99px; white-space:nowrap;
+  background:var(--st-bg,var(--gray-soft)); color:var(--st-color,var(--gray));
+}
+.app-meta{font-size:11.5px; color:var(--ink-faint); margin-top:8px; font-family:'JetBrains Mono'; line-height:1.7;}
+.app-note{font-size:12px; color:var(--ink-dim); margin-top:6px; font-style:italic; line-height:1.4;}
+.app-image-wrap{margin-bottom:10px;}
+.app-image{display:block; width:100%; height:130px; object-fit:cover; border-radius:10px; border:1px solid var(--border); background:var(--surface-soft);}
+.app-image-placeholder{display:flex; align-items:center; justify-content:center; width:100%; height:130px; border-radius:10px; border:1px dashed var(--border); color:var(--ink-faint); background:var(--surface-soft); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.3px;}
+.app-actions{display:flex; gap:6px; margin-top:10px;}
+.empty-state{
+  text-align:center; padding:50px 20px; color:var(--ink-faint); font-size:13px; border:1.5px dashed var(--border);
+  border-radius:var(--radius); background:var(--surface-soft);
+}
+
+/* ---------- CLASS CARDS ---------- */
+.class-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:16px;}
+.class-card{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden;
+  box-shadow:var(--shadow); transition:.15s;
+}
+.class-top{height:6px; background:var(--cl-color,var(--class));}
+.class-head{padding:15px 16px 10px;}
+.class-name{font-family:'Sora'; font-weight:800; font-size:16px;}
+.class-meta{font-size:12px; color:var(--ink-dim); margin-top:4px; line-height:1.6;}
+.class-status{
+  display:inline-block; font-size:10px; font-weight:700; padding:2px 8px; border-radius:99px; margin-top:6px;
+}
+.class-stats{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--border); margin-top:12px;
+}
+.class-stats .cell{background:var(--surface-soft); padding:9px 8px; text-align:center;}
+.class-stats .cell .lbl{font-size:9.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.3px;}
+.class-stats .cell .val{font-family:'JetBrains Mono'; font-weight:700; font-size:12.5px; margin-top:2px;}
+.pay-bar-wrap{padding:10px 16px 4px;}
+.pay-bar-track{height:7px; border-radius:99px; background:var(--red-soft); overflow:hidden;}
+.pay-bar-fill{height:100%; background:var(--green); border-radius:99px; transition:.3s;}
+.pay-bar-label{font-size:10.5px; color:var(--ink-faint); margin-top:5px; font-family:'JetBrains Mono'; display:flex; justify-content:space-between;}
+.class-actions{display:flex; gap:6px; padding:12px 16px 16px; flex-wrap:wrap;}
+
+.class-detail{display:none; border-top:1px solid var(--border); background:var(--surface-soft); padding:14px 16px;}
+.class-detail.open{display:block;}
+.student-chips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;}
+.student-chip{
+  background:var(--surface); border:1px solid var(--border); border-radius:99px; padding:4px 11px 4px 11px;
+  font-size:11.5px; font-weight:600; display:flex; align-items:center; gap:6px;
+}
+.student-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--cl-color,var(--class));}
+.session-list{display:flex; flex-direction:column; gap:8px;}
+.session-row{
+  background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 12px;
+  cursor:pointer; transition:.12s;
+}
+.session-row:hover{border-color:#C9C0A9;}
+.session-row-top{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;}
+.session-date{font-family:'Sora'; font-weight:700; font-size:13px;}
+.session-mid{display:flex; gap:14px; margin-top:6px; flex-wrap:wrap; font-size:11.5px; color:var(--ink-dim); font-family:'JetBrains Mono';}
+.session-content{font-size:12px; color:var(--ink-dim); margin-top:6px; line-height:1.4;}
+.session-note{font-size:11.5px; color:var(--ink-faint); margin-top:3px; font-style:italic; line-height:1.4;}
+.pay-pill{
+  border:none; font-size:10.5px; font-weight:700; padding:4px 10px; border-radius:99px; cursor:pointer;
+}
+.pay-pill.paid{background:var(--green-soft); color:var(--green);}
+.pay-pill.unpaid{background:var(--red-soft); color:var(--red);}
+.session-del{color:var(--ink-faint); font-size:13px; cursor:pointer; padding:2px 4px;}
+.session-del:hover{color:var(--red);}
+
+/* ---------- SUMMARY TAB ---------- */
+.summary-overview{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:18px;}
+.summary-overview .summary-card{
+  background:linear-gradient(180deg, var(--surface), var(--surface-soft)); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:16px 18px;
+}
+.summary-overview .summary-card.primary{background:linear-gradient(135deg, rgba(240,147,43,0.14), rgba(240,147,43,0.04)); border-color: rgba(240,147,43,0.35);}
+.summary-overview .summary-card .label{font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--ink-dim); font-weight:700; font-family:'Sora';}
+.summary-overview .summary-card .value{font-family:'Sora'; font-weight:800; font-size:24px; margin-top:6px; line-height:1.1;}
+.summary-table-wrap{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow);}
+table.summary-table{width:100%; border-collapse:collapse; font-size:13px;}
+table.summary-table th{
+  text-align:left; padding:11px 14px; background:var(--surface-soft); font-family:'Sora'; font-size:11.5px;
+  color:var(--ink-dim); text-transform:uppercase; letter-spacing:.3px; border-bottom:1px solid var(--border);
+}
+table.summary-table td{padding:11px 14px; border-bottom:1px solid var(--border); font-family:'JetBrains Mono';}
+table.summary-table td.name-cell{font-family:'Sora'; font-weight:700; font-size:13px;}
+table.summary-table tr.total-row td{
+  background:linear-gradient(135deg, rgba(240,147,43,0.12), rgba(240,147,43,0.04));
+  font-weight:800; border-top:2px solid rgba(240,147,43,0.5); box-shadow:inset 0 0 0 1px rgba(240,147,43,0.08);
+  font-size:20px; letter-spacing:-0.02em; padding-top:14px; padding-bottom:14px;
+}
+.chart-wrap{margin-top:22px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow);}
+.chart-title{font-family:'Sora'; font-weight:700; font-size:14.5px; margin-bottom:16px;}
+.chart-row{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+.chart-label{width:170px; font-size:12px; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.chart-track{flex:1; height:20px; background:var(--surface-soft); border-radius:6px; overflow:hidden;}
+.chart-fill{height:100%; border-radius:6px; display:flex; align-items:center; justify-content:flex-end; padding-right:8px;}
+.chart-fill span{font-size:10px; color:#fff; font-weight:700; font-family:'JetBrains Mono';}
+
+/* ---------- MODAL ---------- */
+.overlay{
+  position:fixed; inset:0; background:rgba(20,16,8,0.45); backdrop-filter:blur(2px);
+  display:flex; align-items:center; justify-content:center; z-index:100; opacity:0; pointer-events:none;
+  transition:.15s; padding:20px;
+}
+.overlay.open{opacity:1; pointer-events:auto;}
+.modal{
+  width:460px; max-width:100%; max-height:88vh; overflow-y:auto; background:var(--surface);
+  border:1px solid var(--border); border-radius:18px; padding:24px;
+  transform:translateY(8px) scale(.98); transition:.15s; box-shadow:0 30px 60px rgba(0,0,0,0.25);
+}
+.overlay.open .modal{transform:translateY(0) scale(1);}
+.modal.wide{width:600px;}
+.modal h3{margin:0 0 16px 0; font-family:'Sora'; font-size:17px; font-weight:800;}
+.field{margin-bottom:13px;}
+.field label{display:block; font-size:11px; color:var(--ink-dim); margin-bottom:6px; font-weight:600; font-family:'Sora'; text-transform:uppercase; letter-spacing:.3px;}
+.field input[type=text], .field input[type=number], .field input[type=date], .field input[type=url], .field input[type=tel], .field input[type=file], .field select, .field textarea{
+  width:100%; background:var(--surface-soft); border:1px solid var(--border); color:var(--ink);
+  border-radius:9px; padding:9px 11px; font-size:13px; font-family:'Inter'; outline:none;
+}
+.field textarea{resize:vertical; min-height:56px;}
+.field input:focus, .field select:focus, .field textarea:focus{border-color:var(--ink);}
+.preview-box{margin-top:10px; display:none; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface-soft);}
+.preview-box img{display:block; width:100%; max-height:190px; object-fit:cover;}
+.app-thumb-grid{display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 0;}
+.app-thumb{
+  width:80px;height:80px; border-radius:10px; border:1px solid var(--border); overflow:hidden; background:var(--surface-soft);
+  cursor:pointer; position:relative; display:flex; align-items:center; justify-content:center; color:var(--ink-faint); font-weight:700;
+}
+.app-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.app-thumb.placeholder{font-size:20px; background:linear-gradient(135deg, rgba(14,166,158,0.06), rgba(124,92,252,0.06));}
+.image-lightbox{
+  position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(10,13,18,0.72); z-index:200;
+  opacity:0; pointer-events:none; transition:.15s; padding:24px;
+}
+.image-lightbox.open{opacity:1; pointer-events:auto;}
+.image-lightbox-inner{
+  position:relative; max-width:min(92vw, 900px); max-height:90vh; border-radius:18px; overflow:hidden; background:var(--surface);
+  border:1px solid var(--border); box-shadow:0 24px 52px rgba(0,0,0,0.28);
+}
+.image-lightbox-inner img{display:block; max-width:100%; max-height:90vh; object-fit:contain; background:#000;}
+.image-lightbox-close{
+  position:absolute; right:12px; top:12px; width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,0.9);
+  color:var(--ink); font-size:22px; cursor:pointer; line-height:1;
+}
+.row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.modal-actions{display:flex; gap:8px; margin-top:18px;}
+.modal-actions .btn{flex:1; justify-content:center;}
+.swatches{display:flex; flex-wrap:wrap; gap:7px;}
+.swatch{width:26px;height:26px;border-radius:8px;cursor:pointer;border:2px solid transparent;position:relative;}
+.swatch.active{border-color:var(--ink);}
+.swatch.active::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:700;}
+.student-edit-row{display:flex; gap:6px; margin-bottom:7px; align-items:center;}
+.student-edit-row input{flex:1;}
+.student-edit-row .rm{color:var(--ink-faint); cursor:pointer; font-size:15px; flex-shrink:0; padding:0 4px;}
+.student-edit-row .rm:hover{color:var(--red);}
+.checkbox-list{display:flex; flex-direction:column; gap:6px; max-height:170px; overflow-y:auto; border:1px solid var(--border); border-radius:9px; padding:8px 10px; background:var(--surface-soft);}
+.checkbox-list label{display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; text-transform:none; font-weight:500; letter-spacing:0;}
+.checkbox-list input{width:auto !important;}
+.hint{font-size:10.5px; color:var(--ink-faint); margin-top:4px; line-height:1.4;}
+.computed-amount{font-family:'JetBrains Mono'; font-weight:700; font-size:15px; color:var(--class);}
+
+@media (max-width:700px){
+  header, main{padding-left:14px; padding-right:14px;}
+  .class-stats{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body data-page="tutoring">
+
+<header>
+  <div class="header-top">
+    <div class="brand-mark">📒</div>
+    <div class="header-title">
+      <h1>Quản Lý Ứng Tuyển &amp; Lớp Dạy</h1>
+      <p>Dạy học · An toàn thông tin · Thu nhập theo lớp</p>
+    </div>
+    <div class="header-spacer"></div>
+    <button class="reset-btn" id="exportBtn">⬇ Xuất JSON</button>
+    <button class="reset-btn" id="resetBtn">Xoá hết dữ liệu</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="teach" style="--tab-color:var(--teach)"><span class="dot" style="background:var(--teach)"></span>Ứng tuyển dạy học</button>
+    <button class="tab-btn" data-tab="cyber" style="--tab-color:var(--cyber)"><span class="dot" style="background:var(--cyber)"></span>Ứng tuyển ATTT</button>
+    <button class="tab-btn" data-tab="classes" style="--tab-color:var(--class)"><span class="dot" style="background:var(--class)"></span>Lớp đang dạy</button>
+    <button class="tab-btn" data-tab="summary" style="--tab-color:var(--summary)"><span class="dot" style="background:var(--summary)"></span>Tổng hợp lương</button>
+  </div>
+</header>
+
+<main>
+  <!-- TAB: TEACH APPLICATIONS -->
+  <section class="tab-panel active" id="panel-teach">
+    <div class="stats-row" id="statsTeach"></div>
+    <div class="toolbar">
+      <div class="section-heading">Danh sách ứng tuyển — Dạy học</div>
+      <button class="btn btn-solid" style="background:var(--teach)" onclick="openAppModal('teach')">+ Thêm ứng tuyển</button>
+    </div>
+    <div class="app-grid" id="listTeach"></div>
+  </section>
+
+  <!-- TAB: CYBER APPLICATIONS -->
+  <section class="tab-panel" id="panel-cyber">
+    <div class="stats-row" id="statsCyber"></div>
+    <div class="toolbar">
+      <div class="section-heading">Danh sách ứng tuyển — An toàn thông tin</div>
+      <button class="btn btn-solid" style="background:var(--cyber)" onclick="openAppModal('cyber')">+ Thêm ứng tuyển</button>
+    </div>
+    <div class="app-grid" id="listCyber"></div>
+  </section>
+
+  <!-- TAB: CLASSES -->
+  <section class="tab-panel" id="panel-classes">
+    <div class="stats-row" id="statsClasses"></div>
+    <div class="toolbar">
+      <div class="section-heading">Các lớp đang dạy</div>
+      <button class="btn btn-solid" style="background:var(--class)" onclick="openClassModal()">+ Thêm lớp</button>
+    </div>
+    <div class="class-grid" id="listClasses"></div>
+  </section>
+
+  <!-- TAB: SUMMARY -->
+  <section class="tab-panel" id="panel-summary">
+    <div class="toolbar">
+      <div class="section-heading">Tổng hợp lương theo lớp</div>
+    </div>
+    <div class="summary-overview" id="summaryOverview"></div>
+    <div class="summary-table-wrap">
+      <table class="summary-table">
+        <thead>
+          <tr><th>Lớp</th><th>Số buổi</th><th>Tổng lương</th><th>Đã nhận</th><th>Chưa nhận</th></tr>
+        </thead>
+        <tbody id="summaryBody"></tbody>
+      </table>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">So sánh tổng lương giữa các lớp</div>
+      <div id="chartBody"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ===== APPLICATION MODAL ===== -->
+<div class="overlay" id="appOverlay">
+  <div class="modal">
+    <h3 id="appModalTitle">Thêm ứng tuyển</h3>
+    <div class="field"><label>Đơn vị / Phụ huynh tuyển dụng</label><input type="text" id="af-org" placeholder="VD: Trung tâm ABC, phụ huynh bé An..."></div>
+    <div class="row2">
+      <div class="field"><label>Vị trí / Môn dạy</label><input type="text" id="af-position" placeholder="VD: Gia sư Toán 9"></div>
+      <div class="field"><label>Ngày ứng tuyển</label><input type="date" id="af-date"></div>
+    </div>
+    <div class="field"><label>Khu vực / Địa chỉ</label><input type="text" id="af-location" placeholder="VD: Quận 2, TP.HCM"></div>
+    <div class="row2">
+      <div class="field">
+        <label>Kênh liên hệ</label>
+        <select id="af-channel"><option>Mail</option><option>Zalo</option><option>Điện thoại</option><option>Facebook</option><option>Khác</option></select>
+      </div>
+      <div class="field"><label>Thông tin liên hệ</label><input type="text" id="af-contact" placeholder="SĐT / Zalo / Email"></div>
+    </div>
+    <div class="field">
+      <label>Trạng thái</label>
+      <select id="af-status"></select>
+    </div>
+    <div class="field"><label>Link tuyển dụng (nếu có)</label><input type="text" id="af-link" placeholder="https://..."></div>
+    <div class="field"><label>Ảnh bằng chứng đã nộp hồ sơ</label><input type="file" id="af-proof-image" accept="image/*"></div>
+    <div class="preview-box" id="appProofPreviewWrap"><img id="appProofPreview" alt="Preview chứng minh đã nộp hồ sơ"></div>
+    <div class="field"><label>Ảnh tin tuyển dụng gốc</label><input type="file" id="af-jobpost-image" accept="image/*"></div>
+    <div class="preview-box" id="appJobPostPreviewWrap"><img id="appJobPostPreview" alt="Preview bài tuyển dụng gốc"></div>
+    <div class="field"><label>JD / mô tả công việc</label><textarea id="af-jd" placeholder="Nội dung công việc, dự án, nhiệm vụ chính..."></textarea></div>
+    <div class="field"><label>Yêu cầu công việc</label><textarea id="af-requirements" placeholder="Yêu cầu kỹ năng, kinh nghiệm, bằng cấp..."></textarea></div>
+    <div class="field"><label>Cơ hội / lương / đãi ngộ</label><textarea id="af-offer" placeholder="Lương, thưởng, phong cách làm việc, quà tặng..."></textarea></div>
+    <div class="field"><label>Ghi chú khác</label><textarea id="af-notes" placeholder="Tiến độ trao đổi, lưu ý, lịch hẹn, ghi chú riêng..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost-danger" id="appDeleteBtn" style="display:none;">Xóa</button>
+      <button class="btn" onclick="closeAppModal()">Hủy</button>
+      <button class="btn btn-solid" id="appSaveBtn" style="background:var(--ink);">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CLASS MODAL ===== -->
+<div class="overlay" id="classOverlay">
+  <div class="modal wide">
+    <h3 id="classModalTitle">Thêm lớp</h3>
+    <div class="field"><label>Tên lớp</label><input type="text" id="cf-name" placeholder="VD: Toán 9 - Nhóm luyện thi vào 10"></div>
+    <div class="row2">
+      <div class="field"><label>Môn học</label><input type="text" id="cf-subject" placeholder="VD: Toán lớp 9"></div>
+      <div class="field"><label>Đơn vị quản lý</label><input type="text" id="cf-manager" placeholder="VD: Trung tâm ABC / Dạy tự do"></div>
+    </div>
+    <div class="field"><label>Lịch học cố định</label><input type="text" id="cf-schedule" placeholder="VD: Thứ 2-4-6, 18h00-19h30"></div>
+    <div class="row2">
+      <div class="field"><label>Số tiền / buổi (VNĐ)</label><input type="number" id="cf-amount" placeholder="500000"></div>
+      <div class="field"><label>Số phút / buổi</label><input type="number" id="cf-minutes" placeholder="120"></div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Trạng thái lớp</label>
+        <select id="cf-status"><option>Đang dạy</option><option>Tạm nghỉ</option><option>Đã kết thúc</option></select>
+      </div>
+      <div class="field">
+        <label>Màu lớp</label>
+        <div class="swatches" id="cf-swatches"></div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Học sinh trong lớp</label>
+      <div id="cf-students"></div>
+      <button class="btn btn-sm" type="button" onclick="addStudentRow()">+ Thêm học sinh</button>
+      <div class="hint">Ghi thêm SĐT/Zalo phụ huynh nếu muốn (không bắt buộc).</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost-danger" id="classDeleteBtn" style="display:none;">Xóa lớp</button>
+      <button class="btn" onclick="closeClassModal()">Hủy</button>
+      <button class="btn btn-solid" id="classSaveBtn" style="background:var(--class);">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SESSION MODAL ===== -->
+<div class="overlay" id="sessionOverlay">
+  <div class="modal">
+    <h3 id="sessionModalTitle">Thêm buổi dạy</h3>
+    <div class="row2">
+      <div class="field"><label>Ngày dạy</label><input type="date" id="sf-date"></div>
+      <div class="field"><label>Số phút buổi này</label><input type="number" id="sf-minutes"></div>
+    </div>
+    <div class="field">
+      <label>Học sinh có mặt</label>
+      <div class="checkbox-list" id="sf-students"></div>
+    </div>
+    <div class="field"><label>Nội dung bài học</label><textarea id="sf-content" placeholder="Nội dung đã dạy..."></textarea></div>
+    <div class="field"><label>Nhận xét</label><textarea id="sf-note" placeholder="Nhận xét về buổi học, tiến độ học sinh..."></textarea></div>
+    <div class="row2">
+      <div class="field">
+        <label>Trạng thái thanh toán</label>
+        <select id="sf-payment"><option>Chưa nhận</option><option>Đã nhận</option></select>
+      </div>
+      <div class="field">
+        <label>Thành tiền (tự động)</label>
+        <div class="computed-amount" id="sf-amount">0 đ</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost-danger" id="sessionDeleteBtn" style="display:none;">Xóa</button>
+      <button class="btn" onclick="closeSessionModal()">Hủy</button>
+      <button class="btn btn-solid" id="sessionSaveBtn" style="background:var(--class);">Lưu</button>
+    </div>
+  </div>
+</div>
+<div class="image-lightbox" id="imageLightbox" aria-hidden="true">
+  <div class="image-lightbox-inner">
+    <button class="image-lightbox-close" type="button" aria-label="Đóng xem ảnh">×</button>
+    <img id="imageLightboxImg" alt="Xem ảnh chi tiết">
+  </div>
+</div>
+<script src="shared/gia-su-page.js"></script>
+</body>
+</html>

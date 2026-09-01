@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared/style.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="shared/firebase-config.js"></script>
+<script src="shared/store.js"></script>
+<script src="shared/app-shell.js"></script>
+
+<title>mYnd | Sổ chi tiêu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FBF1EE;
+    --bg-soft:#FCEEEA;
+    --surface:#FFFFFF;
+    --border:#F3DCDF;
+    --border-strong:#EAC3C9;
+    --ink:#4A2A33;
+    --ink-dim:#9C7B82;
+    --ink-faint:#CBA8AE;
+    --rose:#D77B90;
+    --rose-soft:#FBE3E8;
+    --sage:#78A789;
+    --sage-soft:#E4F1E9;
+    --gold:#B99954;
+    --gold-soft:#F6E9C6;
+    --lavender:#9C82C4;
+    --shadow:0 10px 28px rgba(191,110,131,0.12);
+    --radius-lg:20px;
+    --radius-md:14px;
+    --radius-sm:9px;
+  }
+  html[data-theme="dark"]{
+    --bg:#0B1626;
+    --bg-soft:#0D1A2C;
+    --surface:#101E33;
+    --border:#1E3252;
+    --border-strong:#2A4570;
+    --ink:#EAF2FF;
+    --ink-dim:#93A8CC;
+    --ink-faint:#5D7196;
+    --shadow:0 10px 28px rgba(0,0,0,0.4);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;min-height:100%;}
+  body{
+    background:
+      radial-gradient(circle at 8% 0%, #F7E4E9 0%, transparent 38%),
+      radial-gradient(circle at 100% 10%, #F0E4F5 0%, transparent 40%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Be Vietnam Pro',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    padding-bottom:60px;
+  }
+  .display{font-family:'Playfair Display',serif;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  /* ---------------- HEADER ---------------- */
+  header{
+    max-width:1080px;margin:20px auto 0;padding:18px 22px;border:1px solid var(--border);border-radius:20px;
+    display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;
+    background:rgba(255,255,255,0.56);backdrop-filter:blur(8px);box-shadow:var(--shadow);
+  }
+  html[data-theme="dark"] header{
+    background:rgba(16,30,51,0.72);
+  }
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand-mark{
+    width:46px;height:46px;border-radius:14px;flex-shrink:0;
+    background:linear-gradient(155deg,#F4B8C4,#E1607E 60%,#B8425E);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 6px 16px rgba(225,96,126,0.35);
+    font-size:20px;
+  }
+  h1{font-family:'Playfair Display';font-weight:700;font-size:26px;margin:0;letter-spacing:.2px;}
+  header .sub{font-size:12.5px;color:var(--ink-dim);margin-top:3px;}
+
+  nav.tabs{
+    display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);
+    padding:5px;border-radius:999px;box-shadow:var(--shadow);
+  }
+  nav.tabs button{
+    border:none;background:transparent;padding:9px 18px;border-radius:999px;font-size:13px;font-weight:600;
+    color:var(--ink-dim);cursor:pointer;font-family:'Be Vietnam Pro';transition:.15s;white-space:nowrap;
+  }
+  nav.tabs button.active{background:var(--rose);color:var(--surface);box-shadow:0 4px 10px rgba(225,96,126,0.35);}
+  nav.tabs button:not(.active):hover{color:var(--ink);}
+
+  .add-btn{
+    border:none;background:linear-gradient(135deg,#E1607E,#C9536B);color:var(--surface);
+    padding:12px 22px;border-radius:999px;font-size:14px;font-weight:700;cursor:pointer;
+    box-shadow:0 8px 18px rgba(201,83,107,0.35);font-family:'Be Vietnam Pro';transition:.15s;
+  }
+  .add-btn:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(201,83,107,0.42);}
+
+  main{max-width:1080px;margin:0 auto;padding:8px 24px 40px;}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  /* ---------------- CARDS ---------------- */
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+    box-shadow:var(--shadow);
+  }
+  .summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:18px 0 24px;}
+  .sum-card{padding:20px 20px 18px;position:relative;overflow:hidden;}
+  .sum-card .icon{font-size:20px;position:absolute;top:18px;right:18px;opacity:.85;}
+  .sum-card .label{font-size:12px;color:var(--ink-dim);font-weight:600;letter-spacing:.2px;}
+  .sum-card .amount{font-family:'Playfair Display';font-weight:700;font-size:24px;margin-top:8px;}
+  .sum-card.balance{background:linear-gradient(155deg, var(--surface-soft), var(--surface)); border-color:var(--border-strong);}
+  .sum-card.balance .amount{color:var(--ink);}
+  .sum-card.income .amount{color:var(--sage);}
+  .sum-card.expense .amount{color:var(--rose);}
+  .sum-card.savings .amount{color:var(--gold);}
+  .sum-card .foot{font-size:11px;color:var(--ink-faint);margin-top:6px;}
+
+  .section-title{
+    font-family:'Playfair Display';font-weight:700;font-size:18px;margin:26px 0 14px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .section-title .mnav{display:flex;align-items:center;gap:8px;font-family:'Be Vietnam Pro';font-size:13px;font-weight:600;color:var(--ink-dim);}
+  .section-title .mnav button{
+    width:26px;height:26px;border-radius:50%;border:1px solid var(--border-strong);background:var(--surface);color:var(--ink-dim);
+    cursor:pointer;font-size:12px;
+  }
+
+  .two-col{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;}
+  @media(max-width:820px){.two-col{grid-template-columns:1fr;} .summary-row{grid-template-columns:repeat(2,1fr);}}
+
+  /* donut */
+  .donut-card{padding:22px;display:flex;gap:22px;align-items:center;}
+  .donut{
+    width:150px;height:150px;border-radius:50%;flex-shrink:0;position:relative;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .donut::before{
+    content:'';position:absolute;inset:20px;background:var(--surface);border-radius:50%;
+    box-shadow:inset 0 0 0 1px var(--border);
+  }
+  .donut .donut-center{position:relative;z-index:2;text-align:center;}
+  .donut .donut-center .amt{font-family:'Playfair Display';font-weight:700;font-size:16px;}
+  .donut .donut-center .lbl{font-size:10px;color:var(--ink-dim);margin-top:2px;}
+  .legend{flex:1;display:flex;flex-direction:column;gap:9px;max-height:180px;overflow-y:auto;padding-right:4px;}
+  .legend-row{display:flex;align-items:center;gap:8px;font-size:12.5px;}
+  .legend-row .dot{width:9px;height:9px;border-radius:3px;flex-shrink:0;}
+  .legend-row .lname{flex:1;color:var(--ink);}
+  .legend-row .lamt{font-family:'JetBrains Mono';font-size:11.5px;color:var(--ink-dim);}
+  .legend-empty{color:var(--ink-faint);font-size:12.5px;font-style:italic;}
+
+  /* recent list */
+  .recent-card{padding:18px 4px 8px;}
+  .recent-list{display:flex;flex-direction:column;}
+  .tx-row{
+    display:flex;align-items:center;gap:12px;padding:11px 18px;border-radius:12px;cursor:pointer;transition:.12s;
+  }
+  .tx-row:hover{background:var(--bg-soft);}
+  .tx-icon{
+    width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;
+  }
+  .tx-info{flex:1;min-width:0;}
+  .tx-info .t-name{font-size:13.5px;font-weight:600;color:var(--ink);}
+  .tx-info .t-meta{font-size:11px;color:var(--ink-faint);margin-top:1px;}
+  .tx-amt{
+    font-family:'JetBrains Mono';font-weight:800;font-size:14px;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;
+    padding:4px 8px;border-radius:999px;border:1px solid transparent;min-width:92px;
+  }
+  .tx-amt.pos{color:var(--sage);background:rgba(94,154,120,0.12);border-color:rgba(94,154,120,0.2);}
+  .tx-amt.neg{color:var(--rose);background:rgba(225,96,126,0.12);border-color:rgba(225,96,126,0.2);}
+  .tx-amt.gold{color:var(--gold);background:rgba(184,137,42,0.12);border-color:rgba(184,137,42,0.2);}
+
+  /* ---------------- LEDGER TAB ---------------- */
+  .filters{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0;}
+  .filters select{
+    background:var(--surface);border:1px solid var(--border-strong);color:var(--ink);
+    padding:9px 12px;border-radius:10px;font-size:12.5px;font-family:'Be Vietnam Pro';font-weight:600;
+  }
+  .ledger-card{padding:6px 4px;}
+  .day-group{padding:14px 18px 4px;}
+  .day-group .day-label{font-size:11px;font-weight:700;letter-spacing:.4px;color:var(--ink-faint);text-transform:uppercase;margin-bottom:4px;}
+  .day-total{font-family:'JetBrains Mono';font-size:10.5px;color:var(--ink-faint);float:right;}
+  .day-budget-summary{display:flex;flex-direction:column;gap:4px;margin:6px 0 10px;padding:8px 10px;border-radius:10px;background:var(--bg-soft);border:1px solid var(--border);font-size:11px;line-height:1.45;color:var(--ink-dim);}
+  .day-budget-summary.food-ok{background:rgba(120,167,137,0.08);border-color:rgba(120,167,137,0.28);color:var(--sage);}
+  .day-budget-summary.food-over{background:rgba(215,123,144,0.08);border-color:rgba(215,123,144,0.24);color:var(--rose);}
+  .day-budget-summary.other-list{background:var(--surface);border-color:var(--border);color:var(--ink-dim);}
+  .day-budget-note{display:block;}
+
+  /* ---------------- WISHLIST TAB ---------------- */
+  .wish-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;margin-top:18px;}
+  .wish-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:18px;
+    box-shadow:var(--shadow);position:relative;
+  }
+  .wish-card.purchased{opacity:.55;}
+  .wish-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .wish-name{font-weight:700;font-size:14.5px;line-height:1.3;}
+  .priority-badge{font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap;letter-spacing:.2px;}
+  .priority-cao{background:var(--rose-soft);color:var(--rose);}
+  .priority-vừa{background:var(--gold-soft);color:var(--gold);}
+  .priority-thấp{background:var(--sage-soft);color:var(--sage);}
+  .wish-price{font-family:'Playfair Display';font-weight:700;font-size:18px;margin-top:8px;}
+  .wish-note{font-size:11.5px;color:var(--ink-dim);margin-top:6px;min-height:14px;}
+  .progress-track{height:7px;background:var(--bg-soft);border-radius:999px;margin-top:12px;overflow:hidden;}
+  .progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#E1607E,#C9536B);}
+  .progress-label{font-size:10.5px;color:var(--ink-faint);margin-top:6px;font-family:'JetBrains Mono';}
+  .wish-actions{display:flex;gap:8px;margin-top:14px;}
+  .wish-actions button{
+    flex:1;border:1px solid var(--border-strong);background:var(--surface);color:var(--ink-dim);border-radius:8px;
+    padding:7px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Be Vietnam Pro';
+  }
+  .wish-actions .buy-btn{background:var(--sage);color:var(--surface);border-color:var(--sage);}
+  .wish-actions .del-btn:hover{background:var(--rose-soft);color:var(--rose);border-color:var(--rose);}
+  .empty-state{
+    text-align:center;padding:50px 20px;color:var(--ink-faint);font-size:13px;
+  }
+  .empty-state .em{font-size:32px;display:block;margin-bottom:10px;}
+
+  /* ---------------- MODAL ---------------- */
+  .overlay{
+    position:fixed;inset:0;background:color-mix(in srgb, var(--gpx-ink) 35%, transparent);backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:.15s;padding:20px;
+  }
+  .overlay.open{opacity:1;pointer-events:auto;}
+  .modal{
+    width:420px;max-width:100%;max-height:88vh;overflow-y:auto;background:var(--gpx-surface);border:1px solid var(--gpx-border);border-radius:22px;
+    padding:26px;box-shadow:var(--gpx-shadow-lift);transform:translateY(10px) scale(.97);transition:.15s;color:var(--gpx-ink);
+  }
+  .overlay.open .modal{transform:translateY(0) scale(1);}
+  .modal h3{font-family:'Playfair Display';font-size:19px;margin:0 0 18px;color:var(--gpx-ink);}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:11px;color:var(--gpx-ink-dim);margin-bottom:6px;font-weight:700;letter-spacing:.2px;text-transform:uppercase;}
+  .field input[type=text],.field input[type=number],.field input[type=date],.field select,.field textarea{
+    width:100%;background:var(--gpx-surface-soft);border:1px solid var(--gpx-border);color:var(--gpx-ink);
+    border-radius:10px;padding:10px 12px;font-size:13.5px;font-family:'Be Vietnam Pro';outline:none;
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gpx-accent);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  .seg4{display:flex;border:1px solid var(--gpx-border);border-radius:12px;overflow:hidden;background:var(--gpx-surface-soft);}
+  .seg4 button{
+    flex:1;padding:9px 4px;background:var(--gpx-surface-soft);color:var(--gpx-ink-dim);border:none;font-size:11.5px;font-weight:700;
+    cursor:pointer;font-family:'Be Vietnam Pro';border-right:1px solid var(--gpx-border);
+  }
+  .seg4 button:last-child{border-right:none;}
+  .seg4 button.active{background:var(--gpx-accent);color:var(--gpx-accent-ink);}
+
+  /* palette (eyeshadow style category picker) */
+  .palette-case{
+    background:var(--bg-soft);border:1px solid var(--border);border-radius:14px;padding:12px;
+  }
+  .palette-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;}
+  .pan{
+    aspect-ratio:1;border-radius:9px;cursor:pointer;position:relative;border:2px solid rgba(255,255,255,0.6);
+    box-shadow:inset 0 -3px 5px rgba(0,0,0,0.12), inset 0 2px 3px rgba(255,255,255,0.5), 0 1px 2px rgba(0,0,0,0.08);
+    display:flex;align-items:center;justify-content:center;font-size:14px;
+  }
+  .pan.active{outline:2px solid var(--ink);outline-offset:2px;}
+  .pan-name{font-size:9px;text-align:center;color:var(--ink-dim);margin-top:3px;line-height:1.15;}
+  .pan-wrap{display:flex;flex-direction:column;}
+
+  .modal-actions{display:flex;gap:8px;margin-top:20px;}
+  .modal-actions button{
+    flex:1;padding:11px;border-radius:12px;font-size:13.5px;font-weight:700;cursor:pointer;border:1px solid var(--border-strong);
+    background:var(--surface);color:var(--ink-dim);font-family:'Be Vietnam Pro';
+  }
+  .modal-actions .save-btn{background:var(--rose);border-color:var(--rose);color:var(--gpx-accent-ink);}
+  .modal-actions .danger-btn{color:var(--rose);}
+  .hint{font-size:10.5px;color:var(--ink-faint);margin-top:6px;}
+
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:6px;}
+
+  /* ---------------- ALERT BANNER ---------------- */
+  .alert-banner{
+    background:linear-gradient(135deg,#FCE0C9,#F9CFC0);border:1px solid #EFB48A;color:#8A4A1E;
+    border-radius:14px;padding:13px 18px;font-size:12.5px;font-weight:600;margin:18px 0;
+    display:flex;align-items:flex-start;gap:10px;line-height:1.5;
+  }
+  .alert-banner.hidden{display:none;}
+  .alert-banner .a-icon{font-size:17px;flex-shrink:0;}
+  .alert-banner b{font-weight:800;}
+
+  /* ---------------- TOAST ---------------- */
+  #toastWrap{position:fixed;bottom:22px;right:22px;z-index:999;display:flex;flex-direction:column;gap:8px;max-width:340px;}
+  .toast{
+    background:var(--surface);border:1px solid var(--border-strong);border-left:4px solid var(--rose);
+    box-shadow:0 10px 26px rgba(74,42,51,0.22);border-radius:12px;padding:12px 16px;font-size:12.5px;
+    color:var(--ink);animation:toastIn .18s ease-out;line-height:1.5;font-weight:600;
+  }
+  @keyframes toastIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+  /* ---------------- PLAN / FOOD CARDS ---------------- */
+  .plan-card,.food-card{padding:20px;}
+  .plan-card h4,.food-card h4{font-family:'Playfair Display';font-size:15px;margin:0 0 12px;display:flex;align-items:center;gap:7px;}
+  .plan-row{display:flex;gap:10px;margin-bottom:10px;}
+  .plan-row .field{flex:1;margin-bottom:0;}
+  .plan-stats{display:flex;flex-direction:column;gap:7px;margin-top:12px;font-size:12.5px;}
+  .plan-stats .pline{display:flex;justify-content:space-between;color:var(--ink-dim);}
+  .plan-stats .pline b{color:var(--ink);font-family:'JetBrains Mono';font-weight:700;}
+  .plan-stats .pline.leftover b{color:var(--sage);}
+  .plan-stats .pline.leftover.over b{color:var(--rose);}
+  .food-card .fbig{font-family:'Playfair Display';font-weight:700;font-size:26px;color:var(--gold);margin:4px 0 2px;}
+  .food-card .fsub{font-size:11px;color:var(--ink-faint);}
+  .food-card .fmeta{margin-top:14px;font-size:11.5px;color:var(--ink-dim);display:flex;flex-direction:column;gap:5px;}
+  .food-card .fmeta .fline{display:flex;justify-content:space-between;}
+  .food-card .fmeta .fline b{font-family:'JetBrains Mono';color:var(--ink);}
+  .food-card .food-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+  .food-card .food-actions button, .food-card .food-actions select{border:1px solid var(--border-strong);border-radius:9px;padding:8px 10px;font-size:11.5px;font-family:'Be Vietnam Pro';background:var(--surface);color:var(--ink);}
+  .food-card .food-actions button{padding:8px 14px;background:var(--sage);border-color:var(--sage);color:var(--surface);cursor:pointer;font-weight:700;}
+  .food-card .food-actions button.secondary{background:var(--surface);color:var(--ink);border-color:var(--border-strong);}
+  .food-empty{color:var(--ink-faint);font-size:12.5px;line-height:1.6;}
+  .food-empty button{margin-top:10px;}
+  .food-day-history{display:flex;flex-direction:column;gap:7px;margin-top:18px;}
+  .food-day-row{display:grid;grid-template-columns:38px 1fr 115px;align-items:center;gap:8px;padding:6px 0;font-size:11px;color:var(--ink-dim);}
+  .food-day-row strong{font-size:10px;}
+  .food-day-track{height:10px;border-radius:999px;background:var(--bg-soft);overflow:hidden;}
+  .food-day-fill{height:100%;border-radius:999px;}
+  .food-day-row.save .food-day-fill{background:linear-gradient(90deg,#8FCBB0,#5E9A78);} .food-day-row.over .food-day-fill{background:linear-gradient(90deg,#F0899E,#C9536B);} .food-day-row.ok .food-day-fill{background:linear-gradient(90deg,#E8B94B,#C99D2B);}
+  .food-day-row.save .food-day-val{color:var(--sage);} .food-day-row.over .food-day-val{color:var(--rose);} .food-day-row.ok .food-day-val{color:var(--gold);}
+  .wish-inline-form{margin-top:12px;padding:10px;border:1px solid var(--border-strong);border-radius:10px;background:var(--bg-soft);display:flex;flex-direction:column;gap:8px;}
+  .wish-inline-form .row{display:flex;gap:8px;}
+  .wish-inline-form input,.wish-inline-form textarea{width:100%;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:8px 9px;font-size:11.5px;color:var(--ink);font-family:'Be Vietnam Pro';}
+  .wish-inline-form button{border:none;border-radius:8px;padding:8px 10px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Be Vietnam Pro';}
+  .wish-inline-form .save{background:var(--sage);color:var(--surface);}
+  .wish-inline-form .cancel{background:var(--surface);color:var(--ink-dim);border:1px solid var(--border-strong);}
+  .wish-progress-wrap{cursor:pointer;}
+  .wish-complete{font-size:10.5px;color:var(--sage);font-weight:800;letter-spacing:.12px;}
+
+  /* ---------------- SETTINGS ---------------- */
+  .settings-block{padding:20px 22px;margin-bottom:20px;}
+  .settings-block h4{font-family:'Playfair Display';font-size:16px;margin:0 0 4px;}
+  .settings-block .settings-desc{font-size:12px;color:var(--ink-dim);margin-bottom:16px;}
+  .cat-row{
+    display:grid;grid-template-columns:44px 1.4fr 1fr auto;gap:8px;align-items:center;padding:8px 0;
+    border-bottom:1px dashed var(--border);
+  }
+  .cat-row:last-child{border-bottom:none;}
+  .cat-row input[type=text]{
+    background:var(--bg-soft);border:1px solid var(--border-strong);border-radius:8px;padding:8px 9px;font-size:12.5px;
+    font-family:'Be Vietnam Pro';color:var(--ink);width:100%;
+  }
+  .cat-row input.icon-input{text-align:center;font-size:16px;padding:8px 4px;}
+  .cat-row input[type=number]{
+    background:var(--bg-soft);border:1px solid var(--border-strong);border-radius:8px;padding:8px 9px;font-size:12.5px;
+    font-family:'JetBrains Mono';color:var(--ink);width:100%;
+  }
+  .cat-row .del-x{
+    border:none;background:transparent;color:var(--ink-faint);font-size:16px;cursor:pointer;padding:4px 8px;border-radius:8px;
+  }
+  .cat-row .del-x:hover{background:var(--rose-soft);color:var(--rose);}
+  .cat-row .col-head{font-size:10px;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.3px;}
+  .cat-add-row{
+    display:grid;grid-template-columns:44px 1.4fr 1fr auto;gap:8px;align-items:center;margin-top:12px;
+    padding-top:12px;border-top:1px solid var(--border-strong);
+  }
+  .cat-add-row button{
+    border:none;background:var(--sage);color:var(--surface);border-radius:8px;padding:9px 6px;font-size:12px;font-weight:700;
+    cursor:pointer;font-family:'Be Vietnam Pro';
+  }
+  .backup-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
+  .backup-actions button, .backup-actions label{
+    border:1px solid var(--border-strong);background:var(--surface);color:var(--ink);padding:10px 18px;border-radius:10px;
+    font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Be Vietnam Pro';display:inline-flex;align-items:center;gap:6px;
+  }
+  .backup-actions .reset-btn{color:var(--rose);border-color:var(--rose-soft);}
+  .backup-actions .reset-btn.warn{color:#9a1d1d;border-color:rgba(158,49,49,0.35);background:rgba(224,96,126,0.08);}
+  .backup-actions .reset-btn.warn:hover{background:rgba(224,96,126,0.12);}
+  .backup-actions .reset-btn:hover{background:var(--rose-soft);}
+  .backup-actions input[type=file]{display:none;}
+
+  /* ---------------- REPORT ---------------- */
+  .report-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:18px 0 22px;}
+  @media(max-width:820px){.report-grid{grid-template-columns:repeat(2,1fr);}}
+  .report-card{padding:22px 24px;}
+  .budget-table{width:100%;}
+  .budget-row-item{padding:12px 0;border-bottom:1px dashed var(--border);}
+  .budget-row-item:last-child{border-bottom:none;}
+  .budget-head{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;margin-bottom:7px;}
+  .budget-head .bname{font-weight:700;color:var(--ink);}
+  .budget-head .bnums{font-family:'JetBrains Mono';color:var(--ink-dim);font-size:11.5px;}
+  .budget-head .bstatus{font-size:9.5px;font-weight:800;padding:2px 8px;border-radius:999px;letter-spacing:.2px;}
+  .bstatus.ok{background:var(--sage-soft);color:var(--sage);}
+  .bstatus.warn{background:var(--gold-soft);color:var(--gold);}
+  .bstatus.over{background:var(--rose-soft);color:var(--rose);}
+  .budget-track{height:7px;background:var(--bg-soft);border-radius:999px;overflow:hidden;}
+  .budget-fill{height:100%;border-radius:999px;}
+  .day-bar-row{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:11.5px;}
+  .day-bar-row .dbl{width:78px;flex-shrink:0;color:var(--ink-dim);font-family:'JetBrains Mono';font-size:10.5px;}
+  .day-bar-track{flex:1;height:14px;background:var(--bg-soft);border-radius:6px;overflow:hidden;}
+  .day-bar-fill{height:100%;background:linear-gradient(90deg,#F0899E,#C9536B);border-radius:6px;}
+  .day-bar-amt{width:92px;text-align:right;flex-shrink:0;font-family:'JetBrains Mono';color:var(--ink-dim);font-size:10.5px;}
+</style>
+</head>
+<body data-page="expenses">
+
+<header>
+  <div class="brand">
+    <div class="brand-mark">💄</div>
+    <div>
+      <h1>Sổ Chi Tiêu</h1>
+      <div class="sub">Thu nhập · chi tiêu · tiết kiệm · wishlist của bạn</div>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="dashboard">Tổng quan</button>
+    <button class="tab-btn" data-tab="ledger">Sổ thu chi</button>
+    <button class="tab-btn" data-tab="report">Báo cáo</button>
+    <button class="tab-btn" data-tab="wishlist">Wishlist</button>
+    <button class="tab-btn" data-tab="settings">Cài đặt</button>
+  </nav>
+  <button class="add-btn" id="addBtn">+ Thêm</button>
+</header>
+
+<main>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section class="tab-panel active" id="tab-dashboard">
+    <div class="alert-banner hidden" id="budgetAlert"><span class="a-icon">⚠️</span><span id="budgetAlertText"></span></div>
+    <div class="summary-row">
+      <div class="card sum-card balance">
+        <div class="icon">👛</div>
+        <div class="label">Số dư khả dụng</div>
+        <div class="amount" id="sumBalance">0 đ</div>
+        <div class="foot">Tiền mặt / tài khoản còn lại</div>
+      </div>
+      <div class="card sum-card income">
+        <div class="icon">📥</div>
+        <div class="label">Tổng thu (tất cả)</div>
+        <div class="amount" id="sumIncome">0 đ</div>
+        <div class="foot" id="sumIncomeFoot">—</div>
+      </div>
+      <div class="card sum-card expense">
+        <div class="icon">📤</div>
+        <div class="label">Tổng chi (tất cả)</div>
+        <div class="amount" id="sumExpense">0 đ</div>
+        <div class="foot" id="sumExpenseFoot">—</div>
+      </div>
+      <div class="card sum-card savings">
+        <div class="icon">🐷</div>
+        <div class="label">Đã tiết kiệm</div>
+        <div class="amount" id="sumSavings">0 đ</div>
+        <div class="foot">Quỹ để dành riêng</div>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <span>Kế hoạch chi tiêu</span>
+    </div>
+    <div class="two-col">
+      <div class="card plan-card">
+        <h4>🎯 Kế hoạch hiện tại <span id="planPeriodLabel" style="font-family:'Be Vietnam Pro';font-size:10.5px;font-weight:600;color:var(--ink-faint);margin-left:auto;"></span></h4>
+        <div class="plan-stats">
+          <div class="pline"><span>Tổng thu nhập (lương, bố mẹ cho, đồ pass...)</span><b id="planIncome">0 đ</b></div>
+          <div class="pline"><span>Đã để dành (tiết kiệm)</span><b id="planSavedAmt">0 đ</b></div>
+          <div class="pline"><span>Được phép chi tiêu</span><b id="planAllowance">0 đ</b></div>
+          <div class="pline"><span>Đã chi</span><b id="planSpent">0 đ</b></div>
+          <div class="pline leftover" id="planLeftoverLine"><span>Còn lại để chi</span><b id="planLeftover">0 đ</b></div>
+        </div>
+        <div class="progress-track" style="margin-top:12px;"><div class="progress-fill" id="planBar" style="width:0%"></div></div>
+        <div class="hint" style="margin-top:10px;">💡 Số này tự cộng từ các giao dịch bạn ghi trong Sổ thu chi (mục Thu nhập và Nạp/Rút tiết kiệm) — không cần nhập tay. Nếu chưa có lương tháng này thì cứ tính như bình thường, chi nhiều hơn thu sẽ hiện số âm.</div>
+        <button id="resetPlanBtn" style="margin-top:12px;border:1px solid var(--border-strong);background:var(--surface);color:var(--ink-dim);padding:9px 16px;border-radius:10px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Be Vietnam Pro';">🔄 Bắt đầu kỳ theo dõi mới</button>
+      </div>
+      <div class="card food-card" id="foodCard">
+        <h4>🍜 Ngân sách ăn uống hôm nay</h4>
+        <div id="foodCardBody"></div>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <span>Chi tiêu theo danh mục</span>
+      <div class="mnav">
+        <button id="dashPrev">‹</button>
+        <span id="dashMonthLabel">—</span>
+        <button id="dashNext">›</button>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="card donut-card">
+        <div class="donut" id="donut"><div class="donut-center"><div class="amt" id="donutAmt">0 đ</div><div class="lbl">chi tháng này</div></div></div>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="card recent-card">
+        <div style="padding:0 18px 8px;font-weight:700;font-size:13px;color:var(--ink-dim);">Giao dịch gần đây</div>
+        <div class="recent-list" id="recentList"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LEDGER ============ -->
+  <section class="tab-panel" id="tab-ledger">
+    <div class="filters">
+      <select id="filterMonth"></select>
+      <select id="filterType">
+        <option value="all">Tất cả loại</option>
+        <option value="income">Thu nhập</option>
+        <option value="expense">Chi tiêu</option>
+        <option value="save_in">Nạp tiết kiệm</option>
+        <option value="save_out">Rút tiết kiệm</option>
+      </select>
+      <select id="filterCategory"><option value="all">Tất cả danh mục</option></select>
+    </div>
+    <div class="card ledger-card" id="ledgerCard"></div>
+  </section>
+
+  <!-- ============ WISHLIST ============ -->
+  <section class="tab-panel" id="tab-wishlist">
+    <div class="section-title"><span>Món muốn mua</span></div>
+    <div class="wish-grid" id="wishGrid"></div>
+  </section>
+
+  <!-- ============ REPORT ============ -->
+  <section class="tab-panel" id="tab-report">
+    <div class="section-title">
+      <span>Báo cáo chi tiêu hằng tháng</span>
+      <div class="mnav">
+        <button id="reportPrev">‹</button>
+        <span id="reportMonthLabel">—</span>
+        <button id="reportNext">›</button>
+      </div>
+    </div>
+    <div class="report-grid" id="reportOverview"></div>
+
+    <div class="two-col">
+      <div class="card report-card">
+        <h4 style="font-family:'Playfair Display';font-size:15px;margin:0 0 14px;">📊 Ngân sách theo danh mục</h4>
+        <div id="reportBudgetTable"></div>
+      </div>
+      <div class="card report-card">
+        <h4 style="font-family:'Playfair Display';font-size:15px;margin:0 0 14px;">📅 Chi tiêu theo ngày</h4>
+        <div id="reportDaily"></div>
+      </div>
+    </div>
+
+    <div class="card report-card" style="margin-top:18px;">
+      <h4 style="font-family:'Playfair Display';font-size:15px;margin:0 0 14px;">🍜 Chi tiết ngân sách ăn uống</h4>
+      <div id="reportFood"></div>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section class="tab-panel" id="tab-settings">
+    <div class="section-title"><span>Cài đặt</span></div>
+
+    <div class="card settings-block">
+      <h4>👗 Danh mục chi tiêu &amp; mức trần ngân sách</h4>
+      <div class="settings-desc">Tự thêm / xóa danh mục và đặt mức trần chi tiêu mỗi tháng cho từng mục (bỏ trống nếu không giới hạn). Hệ thống sẽ báo động khi bạn chi vượt mức.</div>
+      <div class="cat-row" style="border-bottom:1px solid var(--border-strong);padding-bottom:8px;">
+        <span class="col-head">Icon</span><span class="col-head">Tên danh mục</span><span class="col-head">Trần / tháng (đ)</span><span></span>
+      </div>
+      <div id="expenseCatList"></div>
+      <div class="cat-add-row">
+        <input type="text" id="newExpIcon" class="icon-input" maxlength="4" placeholder="🏷️">
+        <input type="text" id="newExpName" placeholder="Tên danh mục mới">
+        <input type="number" id="newExpBudget" min="0" step="10000" placeholder="Không giới hạn">
+        <button id="addExpCatBtn">+ Thêm</button>
+      </div>
+    </div>
+
+    <div class="card settings-block">
+      <h4>💰 Danh mục thu nhập</h4>
+      <div class="settings-desc">Tự thêm / xóa nguồn thu nhập của bạn.</div>
+      <div class="cat-row" style="border-bottom:1px solid var(--border-strong);padding-bottom:8px;grid-template-columns:44px 1fr auto;">
+        <span class="col-head">Icon</span><span class="col-head">Tên nguồn thu</span><span></span>
+      </div>
+      <div id="incomeCatList"></div>
+      <div class="cat-add-row" style="grid-template-columns:44px 1fr auto;">
+        <input type="text" id="newIncIcon" class="icon-input" maxlength="4" placeholder="💰">
+        <input type="text" id="newIncName" placeholder="Nguồn thu mới">
+        <button id="addIncCatBtn">+ Thêm</button>
+      </div>
+    </div>
+
+    <div class="card settings-block">
+      <h4>🍜 Cài đặt ngân sách ăn uống</h4>
+      <div class="settings-desc">Định mức ăn uống mỗi ngày đã đặt sẽ lưu riêng ở key riêng, không xóa khi bạn xóa lịch sử thu chi hoặc khi reset các ngân sách tháng.</div>
+      <div class="row2" style="align-items:end;">
+        <div class="field" style="margin-bottom:0;">
+          <label>Định mức ăn uống mỗi ngày</label>
+          <input type="number" id="dailyFoodBudgetInput" min="0" step="1000" placeholder="80000">
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>&nbsp;</label>
+          <button id="saveDailyFoodBudgetBtn" class="btn btn-solid" style="width:100%;padding:10px 12px;border:none;border-radius:10px;background:var(--sage);color:var(--surface);font-weight:700;cursor:pointer;">Lưu định mức</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card settings-block">
+      <h4>💾 Sao lưu &amp; phục hồi dữ liệu</h4>
+      <div class="settings-desc">Dữ liệu được tự động lưu ngay trên máy/trình duyệt này, kể cả khi bạn tắt file hoặc tắt máy. Để chắc chắn an toàn (ví dụ đổi máy, đổi trình duyệt), hãy thường xuyên xuất file sao lưu.</div>
+      <div class="backup-actions">
+        <button id="exportBtn">⬇️ Xuất file sao lưu (.json)</button>
+        <label for="importFile">⬆️ Nhập file sao lưu
+          <input type="file" id="importFile" accept="application/json">
+        </label>
+        <button class="reset-btn" id="clearMonthTransactionsBtn">🗑️ Xóa lịch sử thu chi tháng này</button>
+        <button class="reset-btn warn" id="resetBudgetLimitBtn">↺ Đặt lại mức trần ngân sách</button>
+        <button class="reset-btn" id="resetBtn">🗑️ Xóa toàn bộ dữ liệu</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===================== TRANSACTION MODAL ===================== -->
+<div class="overlay" id="txOverlay">
+  <div class="modal">
+    <h3 id="txModalTitle">Thêm giao dịch</h3>
+
+    <div class="field">
+      <div class="seg4" id="typeSeg">
+        <button type="button" data-type="income" class="active">Thu</button>
+        <button type="button" data-type="expense">Chi</button>
+        <button type="button" data-type="save_in">Nạp T.Kiệm</button>
+        <button type="button" data-type="save_out">Rút T.Kiệm</button>
+      </div>
+    </div>
+
+    <div class="field" id="categoryField">
+      <label>Danh mục</label>
+      <div class="palette-case">
+        <div class="palette-grid" id="paletteGrid"></div>
+      </div>
+      <div class="hint" id="categoryChosenName"></div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>Số tiền (đ)</label>
+        <input type="number" id="tx-amount" placeholder="VD: 250000" min="0" step="1000">
+      </div>
+      <div class="field">
+        <label>Ngày</label>
+        <input type="date" id="tx-date">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Ghi chú (tuỳ chọn)</label>
+      <input type="text" id="tx-note" placeholder="VD: Mua son MAC ở Sephora">
+    </div>
+
+    <div class="modal-actions">
+      <button class="danger-btn" id="txDeleteBtn" style="display:none;">Xóa</button>
+      <button id="txCancelBtn">Hủy</button>
+      <button class="save-btn" id="txSaveBtn">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== WISHLIST MODAL ===================== -->
+<div class="overlay" id="wishOverlay">
+  <div class="modal">
+    <h3 id="wishModalTitle">Thêm mong muốn</h3>
+    <div class="field">
+      <label>Tên món đồ</label>
+      <input type="text" id="w-name" placeholder="VD: Máy rửa mặt Foreo">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Giá (đ)</label>
+        <input type="number" id="w-price" placeholder="VD: 1500000" min="0" step="1000">
+      </div>
+      <div class="field">
+        <label>Ưu tiên</label>
+        <select id="w-priority">
+          <option value="cao">Cao</option>
+          <option value="vừa" selected>Vừa</option>
+          <option value="thấp">Thấp</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Ghi chú / link (tuỳ chọn)</label>
+      <input type="text" id="w-note" placeholder="VD: Chờ sale Shopee 11/11">
+    </div>
+    <div class="modal-actions">
+      <button class="danger-btn" id="wishDeleteBtn" style="display:none;">Xóa</button>
+      <button id="wishCancelBtn">Hủy</button>
+      <button class="save-btn" id="wishSaveBtn">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastWrap"></div>
+<script src="shared/chi-tieu-page.js"></script>
+</body>
+</html>
