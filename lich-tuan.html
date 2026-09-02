@@ -12,6 +12,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="shared/firebase-config.js"></script>
 <script src="shared/store.js"></script>
+<script src="shared/date-input.js"></script>
 <script src="shared/app-shell.js"></script>
 
 <title>mYnd | Lịch tuần</title>
@@ -538,7 +539,7 @@
 
     <div class="field" id="onceFields">
       <label>Ngày</label>
-      <input type="date" id="f-date">
+      <input type="text" id="f-date" class="shared-date-input" placeholder="dd/mm/yyyy">
     </div>
 
     <div class="weekly-fields" id="weeklyFields">
@@ -557,11 +558,11 @@
       <div class="row2">
         <div class="field">
           <label>Từ ngày</label>
-          <input type="date" id="f-recur-start">
+          <input type="text" id="f-recur-start" class="shared-date-input" placeholder="dd/mm/yyyy">
         </div>
         <div class="field">
           <label>Đến ngày</label>
-          <input type="date" id="f-recur-end">
+          <input type="text" id="f-recur-end" class="shared-date-input" placeholder="dd/mm/yyyy">
         </div>
       </div>
       <div class="hint">Để trống "Đến ngày" nếu lặp vô thời hạn.</div>

@@ -461,7 +461,7 @@
 
   function renderRecent(){
     const list = document.getElementById('recentList');
-    const sorted = [...data.transactions].sort((a,b)=> b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).slice(0,8);
+    const sorted = [...data.transactions].sort((a,b)=> b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).slice(0,4);
     if(sorted.length===0){
       list.innerHTML = '<div class="empty-state"><span class="em">🎀</span>Chưa có giao dịch nào — bấm "+ Thêm" để bắt đầu nhé!</div>';
       return;
@@ -486,6 +486,18 @@
       row.addEventListener('click', ()=> openTxModal(t));
       list.appendChild(row);
     });
+    // Thêm nút "Xem tất cả trong Sổ thu chi"
+    const viewAllBtn = document.createElement('div');
+    viewAllBtn.className = 'tx-row';
+    viewAllBtn.style.cursor = 'pointer';
+    viewAllBtn.innerHTML = `
+      <div style="flex:1;text-align:center;color:var(--gpx-accent);font-size:12.5px;font-weight:600;">Xem tất cả trong Sổ thu chi →</div>
+    `;
+    viewAllBtn.addEventListener('click', ()=>{
+      const ledgerBtn = document.querySelector('[data-tab="ledger"]');
+      if(ledgerBtn) ledgerBtn.click();
+    });
+    list.appendChild(viewAllBtn);
   }
 
   function populateFilterOptions(){
@@ -538,16 +550,22 @@
       items.filter(t => t.type === 'expense' && t.category !== 'an_uong').forEach(t => {
         otherByCategory[t.category] = (otherByCategory[t.category] || 0) + Number(t.amount || 0);
       });
-      const extraLines = Object.entries(otherByCategory).map(([category, total]) => {
-        const cat = catByKey(category) || { icon: '💸', name: category };
-        return `<div class="day-budget-note other">🎉 ${escapeHtml(cat.name)}: ${fmtVND(total)}</div>`;
-      }).join('');
+      // Sort categories by amount descending, then create chips with correct icons
+      const sortedCategories = Object.entries(otherByCategory)
+        .sort((a, b) => b[1] - a[1])
+        .map(([category, total]) => {
+          const cat = catByKey(category) || { icon: '💸', name: category };
+          return `<div class="budget-chip" style="background:var(--surface-soft);border:1px solid var(--border);border-radius:12px;padding:8px 12px;display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;"><span style="font-size:16px;">${cat.icon}</span><span><strong>${escapeHtml(cat.name)}</strong></span><span style="color:var(--ink-dim);font-size:11px;margin-left:2px;">${fmtVND(total)}</span></div>`;
+        });
+      const extraLines = sortedCategories.length > 0 
+        ? `<div style="margin-top:10px;font-size:10px;color:var(--ink-faint);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px;">Theo danh mục</div><div style="display:flex;flex-wrap:wrap;gap:8px;">${sortedCategories.join('')}</div>` 
+        : '';
       const wrap = document.createElement('div');
       wrap.className = 'day-group';
       wrap.innerHTML = `
-        <div class="day-label">${dayLabel(date)}<span class="day-total">${dayNet>=0?'+':''}${fmtVND(dayNet)}</span></div>
+        <div class="day-label" style="background:var(--surface-soft);padding:8px 12px;border-radius:10px;margin-bottom:8px;">${dayLabel(date)}<span class="day-total">${dayNet>=0?'+':''}${fmtVND(dayNet)}</span></div>
         <div class="day-budget-summary ${foodDiff >= 0 ? 'food-ok' : 'food-over'}">${foodSummary}</div>
-        ${extraLines ? `<div class="day-budget-summary other-list">${extraLines}</div>` : ''}
+        ${extraLines ? `<div style="margin-top:12px;">${extraLines}</div>` : ''}
       `;
       const listWrap = document.createElement('div');
       listWrap.className = 'recent-list';
@@ -957,6 +975,14 @@
   const txTitle = document.getElementById('tx-title');
   const txNote = document.getElementById('tx-note');
 
+  function attachSharedDateInputs(){
+    document.querySelectorAll('.shared-date-input').forEach((input) => {
+      if (window.DateInput && typeof window.DateInput.attach === 'function') {
+        window.DateInput.attach(input);
+      }
+    });
+  }
+
   function buildPalette(){
     const cats = catsForType(pendingType);
     paletteGrid.innerHTML = '';
@@ -1003,7 +1029,11 @@
     typeSeg.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b.dataset.type===pendingType));
     buildPalette();
     txAmount.value = tx ? tx.amount : '';
-    txDate.value = tx ? isoToDDMMYYYY(tx.date) : isoToDDMMYYYY(todayISO());
+    if (window.DateInput && typeof window.DateInput.setValue === 'function') {
+      window.DateInput.setValue(txDate, tx ? tx.date : todayISO());
+    } else {
+      txDate.value = tx ? isoToDDMMYYYY(tx.date) : isoToDDMMYYYY(todayISO());
+    }
     txTitle.value = tx ? (tx.title||'') : '';
     txNote.value = tx ? (tx.note||'') : '';
     txAmount.style.borderColor = 'var(--border-strong)';
@@ -1022,7 +1052,7 @@
       alert('Bạn chưa có danh mục nào cho loại này. Hãy vào Cài đặt để thêm danh mục trước.');
       return;
     }
-    const date = ddmmyyyyToISO(txDate.value) || todayISO();
+    const date = (window.DateInput && typeof window.DateInput.getValue === 'function') ? window.DateInput.getValue(txDate) || todayISO() : (ddmmyyyyToISO(txDate.value) || todayISO());
     const rec = {
       id: editingTxId || ('tx_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)),
       type: pendingType,
@@ -1101,6 +1131,7 @@
 
   function initializeExpenses() {
     loadData();
+    attachSharedDateInputs();
   }
 
   document.addEventListener('DOMContentLoaded', () => {

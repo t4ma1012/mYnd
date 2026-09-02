@@ -229,6 +229,20 @@
     return parseDateInput(a.targetDate) - parseDateInput(b.targetDate);
   }
 
+  function attachSharedDateInputs(){
+    document.querySelectorAll('.shared-date-input').forEach((input) => {
+      if (window.DateInput && typeof window.DateInput.attach === 'function') {
+        window.DateInput.attach(input);
+      }
+    });
+  }
+
+  function getInputDateIso(el){
+    if (!el) return '';
+    if (window.DateInput && typeof window.DateInput.getValue === 'function') return window.DateInput.getValue(el) || '';
+    return el.value || '';
+  }
+
   function renderGoalGrid(){
     document.getElementById('sectionHeading').textContent = TAB_HEADINGS[currentTab];
     const grid = document.getElementById('goalGrid');
@@ -241,6 +255,7 @@
     }
     empty.style.display = 'none';
     grid.innerHTML = list.map(g=>buildGoalCardHtml(g)).join('');
+    attachSharedDateInputs();
   }
 
   function buildGoalCardHtml(goal){
@@ -318,7 +333,7 @@
     +       '<div class="milestone-list">'+milestonesHtml+'</div>'
     +       '<div class="milestone-add-row">'
     +         '<input type="text" class="m-add-title" placeholder="Tên mốc nhỏ, VD: Hoàn thành Domain 1">'
-    +         '<input type="date" class="m-add-due">'
+    +         '<input type="text" class="m-add-due shared-date-input" placeholder="dd/mm/yyyy">'
     +         '<button class="btn btn-sm" data-action="add-milestone" data-id="'+goal.id+'">+ Thêm</button>'
     +       '</div>'
     +     '</div>'
@@ -366,17 +381,24 @@
     const btn = e.target.closest('button');
     if(!btn) return;
     const months = Number(btn.dataset.months);
-    const start = gfStart.value ? parseDateInput(gfStart.value) : todayDate();
-    if(!gfStart.value) gfStart.value = fmtISO(start);
-    gfTarget.value = fmtISO(addMonths(start, months));
+    const startIso = getInputDateIso(gfStart);
+    const start = startIso ? parseDateInput(startIso) : todayDate();
+    if(!startIso) {
+      if (window.DateInput && typeof window.DateInput.setValue === 'function') window.DateInput.setValue(gfStart, fmtISO(start));
+      else gfStart.value = fmtISO(start);
+    }
+    if (window.DateInput && typeof window.DateInput.setValue === 'function') window.DateInput.setValue(gfTarget, fmtISO(addMonths(start, months)));
+    else gfTarget.value = fmtISO(addMonths(start, months));
     updateGoalComputedBox();
   });
 
   function updateGoalComputedBox(){
     const box = document.getElementById('goalComputedBox');
-    if(!gfStart.value || !gfTarget.value){ box.style.display='none'; return; }
-    const start = parseDateInput(gfStart.value);
-    const target = parseDateInput(gfTarget.value);
+    const startIso = getInputDateIso(gfStart);
+    const targetIso = getInputDateIso(gfTarget);
+    if(!startIso || !targetIso){ box.style.display='none'; return; }
+    const start = parseDateInput(startIso);
+    const target = parseDateInput(targetIso);
     const totalDays = daysBetween(start, target);
     if(totalDays<=0){ box.style.display='none'; return; }
     const weeks = totalDays/7;
@@ -402,8 +424,13 @@
     editingGoalId = null;
     document.getElementById('goalModalTitle').textContent = 'Thêm mục tiêu';
     gfName.value = '';
-    gfStart.value = todayISO();
-    gfTarget.value = '';
+    if (window.DateInput && typeof window.DateInput.setValue === 'function') {
+      window.DateInput.setValue(gfStart, todayISO());
+      window.DateInput.setValue(gfTarget, '');
+    } else {
+      gfStart.value = todayISO();
+      gfTarget.value = '';
+    }
     gfHoursTotal.value = '';
     gfHoursSession.value = '1.5';
     gfNote.value = '';
@@ -419,8 +446,13 @@
     editingGoalId = id;
     document.getElementById('goalModalTitle').textContent = 'Sửa mục tiêu';
     gfName.value = g.name;
-    gfStart.value = g.startDate;
-    gfTarget.value = g.targetDate;
+    if (window.DateInput && typeof window.DateInput.setValue === 'function') {
+      window.DateInput.setValue(gfStart, g.startDate || '');
+      window.DateInput.setValue(gfTarget, g.targetDate || '');
+    } else {
+      gfStart.value = g.startDate;
+      gfTarget.value = g.targetDate;
+    }
     gfHoursTotal.value = g.hoursTotal!=null ? g.hoursTotal : '';
     gfHoursSession.value = g.hoursPerSession!=null ? g.hoursPerSession : '';
     gfNote.value = g.note || '';
@@ -439,15 +471,17 @@
   document.getElementById('goalSaveBtn').addEventListener('click', ()=>{
     const name = gfName.value.trim();
     if(!name){ gfName.focus(); gfName.style.borderColor='var(--red)'; return; }
-    if(!gfStart.value || !gfTarget.value){ gfTarget.style.borderColor='var(--red)'; return; }
-    if(parseDateInput(gfTarget.value) <= parseDateInput(gfStart.value)){ gfTarget.style.borderColor='var(--red)'; return; }
+    const startIso = window.DateInput && typeof window.DateInput.getValue === 'function' ? window.DateInput.getValue(gfStart) : gfStart.value;
+    const targetIso = window.DateInput && typeof window.DateInput.getValue === 'function' ? window.DateInput.getValue(gfTarget) : gfTarget.value;
+    if(!startIso || !targetIso){ gfTarget.style.borderColor='var(--red)'; return; }
+    if(parseDateInput(targetIso) <= parseDateInput(startIso)){ gfTarget.style.borderColor='var(--red)'; return; }
 
     if(editingGoalId){
       const g = goals.find(x=>x.id===editingGoalId);
       g.type = pendingType;
       g.name = name;
-      g.startDate = gfStart.value;
-      g.targetDate = gfTarget.value;
+      g.startDate = startIso;
+      g.targetDate = targetIso;
       g.hoursTotal = gfHoursTotal.value!=='' ? Number(gfHoursTotal.value) : null;
       g.hoursPerSession = gfHoursSession.value!=='' ? Number(gfHoursSession.value) : null;
       g.note = gfNote.value.trim();
@@ -456,8 +490,8 @@
         id: 'g_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
         type: pendingType,
         name,
-        startDate: gfStart.value,
-        targetDate: gfTarget.value,
+        startDate: startIso,
+        targetDate: targetIso,
         hoursTotal: gfHoursTotal.value!=='' ? Number(gfHoursTotal.value) : null,
         hoursPerSession: gfHoursSession.value!=='' ? Number(gfHoursSession.value) : null,
         note: gfNote.value.trim(),
@@ -483,7 +517,11 @@
     if(!g) return;
     sessionModalGoalId = goalId;
     document.getElementById('sessionGoalName').textContent = g.name;
-    sfDate.value = todayISO();
+    if (window.DateInput && typeof window.DateInput.setValue === 'function') {
+      window.DateInput.setValue(sfDate, todayISO());
+    } else {
+      sfDate.value = todayISO();
+    }
     sfHours.value = g.hoursPerSession!=null ? g.hoursPerSession : '';
     sfNote.value = '';
     openOverlay(sessionOverlay);
@@ -495,11 +533,12 @@
     const g = goals.find(x=>x.id===sessionModalGoalId);
     if(!g) return;
     const hours = Number(sfHours.value);
-    if(!sfDate.value || !hours || hours<=0){ sfHours.style.borderColor='var(--red)'; return; }
+    const sessionDateIso = window.DateInput && typeof window.DateInput.getValue === 'function' ? window.DateInput.getValue(sfDate) : sfDate.value;
+    if(!sessionDateIso || !hours || hours<=0){ sfHours.style.borderColor='var(--red)'; return; }
     g.sessions = g.sessions || [];
     g.sessions.push({
       id:'s_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
-      date: sfDate.value,
+      date: sessionDateIso,
       hours,
       note: sfNote.value.trim()
     });
@@ -545,10 +584,11 @@
       const titleInp = card.querySelector('.m-add-title');
       const dueInp = card.querySelector('.m-add-due');
       const title = titleInp.value.trim();
-      if(!title || !dueInp.value){ titleInp.style.borderColor = title? 'var(--border)':'var(--red)'; dueInp.style.borderColor = dueInp.value?'var(--border)':'var(--red)'; return; }
+      const dueIso = getInputDateIso(dueInp);
+      if(!title || !dueIso){ titleInp.style.borderColor = title? 'var(--border)':'var(--red)'; dueInp.style.borderColor = dueIso?'var(--border)':'var(--red)'; return; }
       const g = goals.find(x=>x.id===id);
       g.milestones = g.milestones || [];
-      g.milestones.push({ id:'m_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), title, due: dueInp.value, done:false });
+      g.milestones.push({ id:'m_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), title, due: dueIso, done:false });
       expandedMilestones[id] = true;
       persist(); renderAll();
       return;
@@ -594,7 +634,10 @@
   });
 
   function initializeGoals() {
-    loadGoals().then(renderAll);
+    loadGoals().then(() => {
+      renderAll();
+      attachSharedDateInputs();
+    });
   }
 
   document.addEventListener('DOMContentLoaded', () => {

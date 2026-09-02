@@ -160,14 +160,24 @@
   function statusInfo(name){
     return APP_STATUSES.find(s=>s.name===name) || APP_STATUSES[0];
   }
+  function getSessionMinutes(cls, ses){
+    const explicitMinutes = Number(ses?.minutes ?? 0) || 0;
+    if (Number.isFinite(explicitMinutes) && explicitMinutes > 0) return explicitMinutes;
+    const fallbackMinutes = Number(cls?.minutesPerSession ?? cls?.duration ?? 0) || 0;
+    return Number.isFinite(fallbackMinutes) && fallbackMinutes > 0 ? fallbackMinutes : 0;
+  }
+
   function sessionAmount(cls, ses){
-    const explicitAmount = Number(cls.amountPerSession ?? cls.rate ?? 0) || 0;
-    if (Number.isFinite(explicitAmount) && explicitAmount > 0) {
-      return explicitAmount;
+    const classAmount = Number(cls?.amountPerSession ?? cls?.rate ?? 0) || 0;
+    const classMinutes = Number(cls?.minutesPerSession ?? cls?.duration ?? 0) || 0;
+    const sessionMinutes = getSessionMinutes(cls, ses);
+
+    if (!classAmount || !classMinutes) {
+      return Math.round(classAmount * (sessionMinutes || 0) / Math.max(1, classMinutes || sessionMinutes || 1));
     }
-    const legacyRate = Number(cls.rate || 0) || 0;
-    const mins = Number(ses.minutes || cls.minutesPerSession || cls.duration || 0) || 0;
-    return Math.round(legacyRate * mins / 60);
+
+    const donGiaPhut = classAmount / classMinutes;
+    return Math.round(donGiaPhut * sessionMinutes);
   }
   function classTotals(cls){
     let total=0, paid=0;
@@ -260,6 +270,14 @@
   }
   bindImageLightbox();
 
+  function attachSharedDateInputs(){
+    document.querySelectorAll('.shared-date-input').forEach((input) => {
+      if (window.DateInput && typeof window.DateInput.attach === 'function') {
+        window.DateInput.attach(input);
+      }
+    });
+  }
+
   function renderAppList(type, containerId){
     const list = db[type];
     const el = document.getElementById(containerId);
@@ -334,7 +352,11 @@
     document.getElementById('appSaveBtn').style.background = type==='teach' ? 'var(--teach)' : 'var(--cyber)';
     document.getElementById('af-org').value = app ? app.org : '';
     document.getElementById('af-position').value = app ? app.position : '';
-    document.getElementById('af-date').value = app ? app.date : new Date().toISOString().slice(0,10);
+    if (window.DateInput && typeof window.DateInput.setValue === 'function') {
+      window.DateInput.setValue(document.getElementById('af-date'), app ? app.date : '');
+    } else {
+      document.getElementById('af-date').value = app ? app.date : new Date().toISOString().slice(0,10);
+    }
     document.getElementById('af-location').value = app ? app.location : '';
     document.getElementById('af-channel').value = app ? app.channel : 'Mail';
     document.getElementById('af-contact').value = app ? app.contact : '';
@@ -376,6 +398,99 @@
     }
   });
 
+  // Clipboard paste handling for image fields
+  let appModalPasteHandler = null;
+
+  function setupAppModalPasteHandler() {
+    appModalPasteHandler = async (event) => {
+      const items = event.clipboardData?.items;
+      if (!items) return;
+      for (let item of items) {
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          event.preventDefault();
+          const file = item.getAsFile();
+          if (!file) return;
+          try {
+            const dataUrl = await toDataUrl(file);
+            // Determine which field to update based on focus or last hovered
+            const proofZone = document.getElementById('af-proof-drop-zone');
+            const jobpostZone = document.getElementById('af-jobpost-drop-zone');
+            const isProofHover = proofZone && (proofZone.dataset.hovering === 'true' || document.activeElement === proofZone);
+            const isJobpostHover = jobpostZone && (jobpostZone.dataset.hovering === 'true' || document.activeElement === jobpostZone);
+            
+            if (isProofHover) {
+              updateAppImagePreview('appProofPreview', 'appProofPreviewWrap', dataUrl);
+              proofZone.style.borderColor = 'var(--gpx-accent)';
+              setTimeout(() => proofZone.style.borderColor = 'var(--border-strong)', 300);
+            } else if (isJobpostHover) {
+              updateAppImagePreview('appJobPostPreview', 'appJobPostPreviewWrap', dataUrl);
+              jobpostZone.style.borderColor = 'var(--gpx-accent)';
+              setTimeout(() => jobpostZone.style.borderColor = 'var(--border-strong)', 300);
+            }
+          } catch (err) {
+            console.error(err);
+            alert('Không thể đọc ảnh từ clipboard. Vui lòng thử lại.');
+          }
+          return;
+        }
+      }
+    };
+    document.addEventListener('paste', appModalPasteHandler);
+  }
+
+  // Setup drop zone for proof image
+  const proofDropZone = document.getElementById('af-proof-drop-zone');
+  proofDropZone.addEventListener('click', () => document.getElementById('af-proof-image').click());
+  proofDropZone.addEventListener('mouseover', () => {
+    proofDropZone.dataset.hovering = 'true';
+    proofDropZone.style.borderColor = 'var(--gpx-accent)';
+    proofDropZone.style.background = 'rgba(122,165,248,0.05)';
+  });
+  proofDropZone.addEventListener('mouseleave', () => {
+    proofDropZone.dataset.hovering = 'false';
+    proofDropZone.style.borderColor = 'var(--border-strong)';
+    proofDropZone.style.background = 'var(--bg-soft)';
+  });
+  proofDropZone.dataset.hovering = 'false';
+
+  // Setup drop zone for jobpost image
+  const jobpostDropZone = document.getElementById('af-jobpost-drop-zone');
+  jobpostDropZone.addEventListener('click', () => document.getElementById('af-jobpost-image').click());
+  jobpostDropZone.addEventListener('mouseover', () => {
+    jobpostDropZone.dataset.hovering = 'true';
+    jobpostDropZone.style.borderColor = 'var(--gpx-accent)';
+    jobpostDropZone.style.background = 'rgba(122,165,248,0.05)';
+  });
+  jobpostDropZone.addEventListener('mouseleave', () => {
+    jobpostDropZone.dataset.hovering = 'false';
+    jobpostDropZone.style.borderColor = 'var(--border-strong)';
+    jobpostDropZone.style.background = 'var(--bg-soft)';
+  });
+  jobpostDropZone.dataset.hovering = 'false';
+
+  // Wrap openAppModal to setup paste handler
+  const originalOpenAppModal = window.openAppModal;
+  window.openAppModal = function(app) {
+    // Remove old paste handler if exists
+    if (appModalPasteHandler) {
+      document.removeEventListener('paste', appModalPasteHandler);
+    }
+    // Setup new paste handler
+    setupAppModalPasteHandler();
+    // Call original function
+    return originalOpenAppModal.call(this, app);
+  };
+
+  // Wrap closeAppModal to remove paste handler
+  const originalCloseAppModal = window.closeAppModal;
+  window.closeAppModal = function() {
+    if (appModalPasteHandler) {
+      document.removeEventListener('paste', appModalPasteHandler);
+      appModalPasteHandler = null;
+    }
+    return originalCloseAppModal.call(this);
+  };
+
   document.getElementById('appSaveBtn').addEventListener('click', async ()=>{
     const org = document.getElementById('af-org').value.trim();
     if(!org){ document.getElementById('af-org').focus(); return; }
@@ -386,7 +501,7 @@
     const jobData = jobFile ? await toDataUrl(jobFile) : (existing ? (existing.jobPostImage || '') : '');
     const payload = {
       org, position: document.getElementById('af-position').value.trim(),
-      date: document.getElementById('af-date').value,
+      date: window.DateInput && typeof window.DateInput.getValue === 'function' ? window.DateInput.getValue(document.getElementById('af-date')) : document.getElementById('af-date').value,
       location: document.getElementById('af-location').value.trim(),
       channel: document.getElementById('af-channel').value,
       contact: document.getElementById('af-contact').value.trim(),
@@ -673,9 +788,18 @@
 
   function updateSessionAmount(){
     const cls = db.classes.find(c=>c.id===sessionEditing.classId);
-    const mins = Number(document.getElementById('sf-minutes').value)||0;
-    const amount = Number(cls?.amountPerSession || cls?.rate || 0) || 0;
-    document.getElementById('sf-amount').textContent = fmtVND(amount || Math.round((cls?.rate||0)*mins/60));
+    const sessionMinutes = Number(document.getElementById('sf-minutes').value) || 0;
+    const classAmount = Number(cls?.amountPerSession ?? cls?.rate ?? 0) || 0;
+    const classMinutes = Number(cls?.minutesPerSession ?? cls?.duration ?? 0) || 0;
+    const effectiveMinutes = sessionMinutes > 0 ? sessionMinutes : classMinutes;
+    const effectiveAmount = classMinutes > 0 ? Math.round((classAmount / classMinutes) * effectiveMinutes) : 0;
+    const amountWrap = document.getElementById('sf-amount');
+    const formulaWrap = document.getElementById('sf-amount-formula');
+    amountWrap.textContent = fmtVND(effectiveAmount);
+    if (formulaWrap) {
+      const unit = classMinutes > 0 ? `${fmtVND(classAmount / classMinutes)}/phút` : '—';
+      formulaWrap.textContent = classMinutes > 0 ? `Đơn giá: ${unit} × ${effectiveMinutes} phút` : 'Dữ liệu thời lượng lớp chưa hợp lệ';
+    }
   }
 
   window.openSessionModal = function(classId, sessionId){
@@ -807,6 +931,7 @@
 
   function initializeTutoring() {
     loadData();
+    attachSharedDateInputs();
   }
 
   document.addEventListener('DOMContentLoaded', () => {

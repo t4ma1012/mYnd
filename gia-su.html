@@ -12,6 +12,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="shared/firebase-config.js"></script>
 <script src="shared/store.js"></script>
+<script src="shared/date-input.js"></script>
 <script src="shared/app-shell.js"></script>
 
 <title>mYnd | Gia sư</title>
@@ -397,7 +398,7 @@ table.summary-table tr.total-row td{
     <div class="field"><label>Đơn vị / Phụ huynh tuyển dụng</label><input type="text" id="af-org" placeholder="VD: Trung tâm ABC, phụ huynh bé An..."></div>
     <div class="row2">
       <div class="field"><label>Vị trí / Môn dạy</label><input type="text" id="af-position" placeholder="VD: Gia sư Toán 9"></div>
-      <div class="field"><label>Ngày ứng tuyển</label><input type="date" id="af-date"></div>
+      <div class="field"><label>Ngày ứng tuyển</label><input type="text" id="af-date" class="shared-date-input" placeholder="dd/mm/yyyy"></div>
     </div>
     <div class="field"><label>Khu vực / Địa chỉ</label><input type="text" id="af-location" placeholder="VD: Quận 2, TP.HCM"></div>
     <div class="row2">
@@ -412,9 +413,21 @@ table.summary-table tr.total-row td{
       <select id="af-status"></select>
     </div>
     <div class="field"><label>Link tuyển dụng (nếu có)</label><input type="text" id="af-link" placeholder="https://..."></div>
-    <div class="field"><label>Ảnh bằng chứng đã nộp hồ sơ</label><input type="file" id="af-proof-image" accept="image/*"></div>
+    <div class="field">
+      <label>Ảnh bằng chứng đã nộp hồ sơ</label>
+      <div class="image-drop-zone" id="af-proof-drop-zone" style="border:2px dashed var(--border-strong);border-radius:12px;padding:20px;text-align:center;background:var(--bg-soft);cursor:pointer;transition:.15s;">
+        <input type="file" id="af-proof-image" accept="image/*" style="display:none;">
+        <div style="font-size:13px;color:var(--ink-dim);font-weight:500;">Chọn file hoặc dán ảnh (Ctrl+V) vào đây</div>
+      </div>
+    </div>
     <div class="preview-box" id="appProofPreviewWrap"><img id="appProofPreview" alt="Preview chứng minh đã nộp hồ sơ"></div>
-    <div class="field"><label>Ảnh tin tuyển dụng gốc</label><input type="file" id="af-jobpost-image" accept="image/*"></div>
+    <div class="field">
+      <label>Ảnh tin tuyển dụng gốc</label>
+      <div class="image-drop-zone" id="af-jobpost-drop-zone" style="border:2px dashed var(--border-strong);border-radius:12px;padding:20px;text-align:center;background:var(--bg-soft);cursor:pointer;transition:.15s;">
+        <input type="file" id="af-jobpost-image" accept="image/*" style="display:none;">
+        <div style="font-size:13px;color:var(--ink-dim);font-weight:500;">Chọn file hoặc dán ảnh (Ctrl+V) vào đây</div>
+      </div>
+    </div>
     <div class="preview-box" id="appJobPostPreviewWrap"><img id="appJobPostPreview" alt="Preview bài tuyển dụng gốc"></div>
     <div class="field"><label>JD / mô tả công việc</label><textarea id="af-jd" placeholder="Nội dung công việc, dự án, nhiệm vụ chính..."></textarea></div>
     <div class="field"><label>Yêu cầu công việc</label><textarea id="af-requirements" placeholder="Yêu cầu kỹ năng, kinh nghiệm, bằng cấp..."></textarea></div>
@@ -471,7 +484,7 @@ table.summary-table tr.total-row td{
   <div class="modal">
     <h3 id="sessionModalTitle">Thêm buổi dạy</h3>
     <div class="row2">
-      <div class="field"><label>Ngày dạy</label><input type="date" id="sf-date"></div>
+      <div class="field"><label>Ngày dạy</label><input type="text" id="sf-date" class="shared-date-input" placeholder="dd/mm/yyyy"></div>
       <div class="field"><label>Số phút buổi này</label><input type="number" id="sf-minutes"></div>
     </div>
     <div class="field">
@@ -488,6 +501,7 @@ table.summary-table tr.total-row td{
       <div class="field">
         <label>Thành tiền (tự động)</label>
         <div class="computed-amount" id="sf-amount">0 đ</div>
+        <div class="hint" id="sf-amount-formula">Đơn giá: 0 đ/phút × 0 phút</div>
       </div>
     </div>
     <div class="modal-actions">

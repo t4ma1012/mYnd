@@ -479,6 +479,14 @@
     renderTodayList();
   }
 
+  function attachSharedDateInputs(){
+    document.querySelectorAll('.shared-date-input').forEach((input) => {
+      if (window.DateInput && typeof window.DateInput.attach === 'function') {
+        window.DateInput.attach(input);
+      }
+    });
+  }
+
   const overlay = document.getElementById('overlay');
   const fTitle = document.getElementById('f-title');
   const fLocation = document.getElementById('f-location');
@@ -544,10 +552,19 @@
     selectedColor = COLORS[Math.floor(Math.random()*COLORS.length)].hex;
     buildSwatches();
     setSegType('once');
-    fDate.value = fmtISO(date);
+    if (window.DateInput && typeof window.DateInput.setValue === 'function') {
+      window.DateInput.setValue(fDate, fmtISO(date));
+    } else {
+      fDate.value = fmtISO(date);
+    }
     setSelectedDows([]);
-    fRecurStart.value = fmtISO(date);
-    fRecurEnd.value = '';
+    if (window.DateInput && typeof window.DateInput.setValue === 'function') {
+      window.DateInput.setValue(fRecurStart, fmtISO(date));
+      window.DateInput.setValue(fRecurEnd, '');
+    } else {
+      fRecurStart.value = fmtISO(date);
+      fRecurEnd.value = '';
+    }
     fStart.value = minutesLabel(startMinutes);
     fEnd.value = minutesLabel(Math.min(startMinutes+60, HOUR_END*60));
     openModal();
@@ -564,10 +581,16 @@
     selectedColor = ev.color;
     buildSwatches();
     setSegType(ev.recurring ? 'weekly' : 'once');
-    fDate.value = ev.recurring ? fmtISO(dateClicked) : ev.date;
+    if (window.DateInput && typeof window.DateInput.setValue === 'function') {
+      window.DateInput.setValue(fDate, ev.recurring ? fmtISO(dateClicked) : (ev.date || fmtISO(dateClicked)));
+      window.DateInput.setValue(fRecurStart, ev.recurring ? (ev.recurStart || fmtISO(dateClicked)) : fmtISO(dateClicked));
+      window.DateInput.setValue(fRecurEnd, ev.recurring ? (ev.recurEnd || '') : '');
+    } else {
+      fDate.value = ev.recurring ? fmtISO(dateClicked) : ev.date;
+      fRecurStart.value = ev.recurring ? (ev.recurStart||'') : fmtISO(dateClicked);
+      fRecurEnd.value = ev.recurring ? (ev.recurEnd||'') : '';
+    }
     setSelectedDows(Array.isArray(ev.dows) ? ev.dows : (typeof ev.dow === 'number' ? [ev.dow] : []));
-    fRecurStart.value = ev.recurring ? (ev.recurStart||'') : fmtISO(dateClicked);
-    fRecurEnd.value = ev.recurring ? (ev.recurEnd||'') : '';
     fStart.value = ev.start;
     fEnd.value = ev.end;
     openModal();
@@ -606,12 +629,15 @@
       recurring: pendingType === 'weekly',
     };
     if(base.recurring){
+      const recurStartValue = window.DateInput && typeof window.DateInput.getValue === 'function' ? window.DateInput.getValue(fRecurStart) : fRecurStart.value;
+      const recurEndValue = window.DateInput && typeof window.DateInput.getValue === 'function' ? window.DateInput.getValue(fRecurEnd) : fRecurEnd.value;
       base.dows = getSelectedDows();
-      base.recurStart = fRecurStart.value || todayISO();
-      base.recurEnd = fRecurEnd.value || null;
+      base.recurStart = recurStartValue || todayISO();
+      base.recurEnd = recurEndValue || null;
       base.date = null;
     } else {
-      base.date = fDate.value || todayISO();
+      const eventDateValue = window.DateInput && typeof window.DateInput.getValue === 'function' ? window.DateInput.getValue(fDate) : fDate.value;
+      base.date = eventDateValue || todayISO();
       base.dows = []; base.recurStart = null; base.recurEnd = null;
     }
 
@@ -666,6 +692,7 @@
 
   function initializeCalendar() {
     buildSwatches();
+    attachSharedDateInputs();
     loadEvents().then(()=> scrollToNow());
     loadTodos();
     setInterval(renderGridBody, 60000);

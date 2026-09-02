@@ -12,6 +12,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="shared/firebase-config.js"></script>
 <script src="shared/store.js"></script>
+<script src="shared/date-input.js"></script>
 <script src="shared/app-shell.js"></script>
 
 <title>mYnd | Mục tiêu</title>
@@ -361,11 +362,11 @@ main{max-width:1280px; margin:0 auto; padding:22px 26px 60px;}
     <div class="row2">
       <div class="field">
         <label>Ngày bắt đầu</label>
-        <input type="date" id="gf-start">
+        <input type="text" id="gf-start" class="shared-date-input" placeholder="dd/mm/yyyy">
       </div>
       <div class="field">
         <label>Hạn hoàn thành</label>
-        <input type="date" id="gf-target">
+        <input type="text" id="gf-target" class="shared-date-input" placeholder="dd/mm/yyyy">
       </div>
     </div>
     <div class="duration-quick" id="durationQuick">
@@ -411,7 +412,7 @@ main{max-width:1280px; margin:0 auto; padding:22px 26px 60px;}
     <div class="row2">
       <div class="field">
         <label>Ngày học</label>
-        <input type="date" id="sf-date">
+        <input type="text" id="sf-date" class="shared-date-input" placeholder="dd/mm/yyyy">
       </div>
       <div class="field">
         <label>Số giờ đã học</label>

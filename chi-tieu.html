@@ -12,6 +12,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="shared/firebase-config.js"></script>
 <script src="shared/store.js"></script>
+<script src="shared/date-input.js"></script>
 <script src="shared/app-shell.js"></script>
 
 <title>mYnd | Sổ chi tiêu</title>
@@ -23,6 +24,7 @@
     --bg-soft:#FCEEEA;
     --surface:#FFFFFF;
     --border:#F3DCDF;
+    --border-soft:#F8E8EB;
     --border-strong:#EAC3C9;
     --ink:#4A2A33;
     --ink-dim:#9C7B82;
@@ -43,7 +45,9 @@
     --bg:#0B1626;
     --bg-soft:#0D1A2C;
     --surface:#101E33;
+    --surface-soft:#162B40;
     --border:#1E3252;
+    --border-soft:#2A4570;
     --border-strong:#2A4570;
     --ink:#EAF2FF;
     --ink-dim:#93A8CC;
@@ -62,6 +66,9 @@
     -webkit-font-smoothing:antialiased;
     min-height:100vh;
     padding-bottom:60px;
+  }
+  html[data-theme="dark"] body{
+    background:var(--bg);
   }
   .display{font-family:'Playfair Display',serif;}
   .mono{font-family:'JetBrains Mono',monospace;}
@@ -89,13 +96,21 @@
   nav.tabs{
     display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);
     padding:5px;border-radius:999px;box-shadow:var(--shadow);
+    overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;
+    scrollbar-width:none;
   }
+  nav.tabs::-webkit-scrollbar{display:none;}
   nav.tabs button{
     border:none;background:transparent;padding:9px 18px;border-radius:999px;font-size:13px;font-weight:600;
     color:var(--ink-dim);cursor:pointer;font-family:'Be Vietnam Pro';transition:.15s;white-space:nowrap;
+    flex-shrink:0;scroll-snap-align:start;
   }
   nav.tabs button.active{background:var(--gpx-accent);color:var(--gpx-accent-ink);box-shadow:0 4px 10px rgba(122,165,248,0.25);}
   nav.tabs button:not(.active):hover{color:var(--ink);}
+
+  @media(min-width:901px){
+    header{margin-top:58px;}
+  }
 
   .add-btn{
     border:none;background:var(--gpx-accent);color:var(--gpx-accent-ink);
@@ -186,7 +201,8 @@
     padding:9px 12px;border-radius:10px;font-size:12.5px;font-family:'Be Vietnam Pro';font-weight:600;
   }
   .ledger-card{padding:6px 4px;}
-  .day-group{padding:14px 18px 4px;}
+  .day-group{padding:14px 18px 4px;margin-top:18px;border-top:2px solid var(--border);}
+  .day-group:first-of-type{border-top:none;margin-top:0;}
   .day-group .day-label{font-size:11px;font-weight:700;letter-spacing:.4px;color:var(--ink-faint);text-transform:uppercase;margin-bottom:4px;}
   .day-total{font-family:'JetBrains Mono';font-size:10.5px;color:var(--ink-faint);float:right;}
   .day-budget-summary{display:flex;flex-direction:column;gap:4px;margin:6px 0 10px;padding:8px 10px;border-radius:10px;background:var(--bg-soft);border:1px solid var(--border);font-size:11px;line-height:1.45;color:var(--ink-dim);}
@@ -297,6 +313,9 @@
     background:linear-gradient(135deg,#FCE0C9,#F9CFC0);border:1px solid #EFB48A;color:#8A4A1E;
     border-radius:14px;padding:13px 18px;font-size:12.5px;font-weight:600;margin:18px 0;
     display:flex;align-items:flex-start;gap:10px;line-height:1.5;
+  }
+  html[data-theme="dark"] .alert-banner{
+    background:linear-gradient(135deg,#C86E3F,#B85A2C);border-color:#8B4513;color:#FFD4B5;
   }
   .alert-banner.hidden{display:none;}
   .alert-banner .a-icon{font-size:17px;flex-shrink:0;}

@@ -178,3 +178,18 @@ body{padding-bottom:64px;} /* chừa chỗ cho bottom nav trên mobile */
 }
 @media (min-width:901px){ #gpx-sync-toast{bottom:16px;} }
 #gpx-sync-toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+.date-input-shell{position:relative; display:flex; align-items:center; gap:8px; width:100%;}
+.date-input-shell input.shared-date-input{flex:1; width:100%; min-width:0;}
+.date-input-btn{appearance:none; border:1px solid var(--gpx-border, var(--border)); background:var(--gpx-surface-soft, var(--panel-strong)); color:var(--gpx-ink, var(--ink)); border-radius:8px; width:34px; height:34px; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;}
+.date-input-popup{position:absolute; top:calc(100% + 6px); left:0; right:auto; z-index:1000; background:var(--gpx-surface, var(--surface)); border:1px solid var(--gpx-border, var(--border)); border-radius:12px; box-shadow:0 14px 32px rgba(15,23,42,0.12); padding:10px; min-width:260px; display:none;}
+.date-input-popup.open{display:block;}
+.date-input-header{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; font-size:12px; font-weight:700; color:var(--gpx-ink, var(--ink));}
+.date-input-nav{border:1px solid var(--gpx-border, var(--border)); background:transparent; border-radius:8px; width:28px; height:28px; cursor:pointer; color:var(--gpx-ink, var(--ink));}
+.date-input-weekdays, .date-input-grid{display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); gap:4px;}
+.date-input-weekdays{font-size:11px; color:var(--gpx-ink-dim, var(--ink-dim)); margin-bottom:6px; text-align:center;}
+.date-input-day, .date-input-empty{height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:12px;}
+.date-input-day{border:1px solid transparent; background:transparent; color:var(--gpx-ink, var(--ink)); cursor:pointer;}
+.date-input-day:hover{border-color:var(--gpx-accent, var(--ink));}
+.date-input-day.selected{background:var(--gpx-accent, var(--accent)); color:var(--gpx-accent-ink, #fff); font-weight:700;}
+.date-input-day.today{outline:1px solid var(--gpx-border, var(--border));}
