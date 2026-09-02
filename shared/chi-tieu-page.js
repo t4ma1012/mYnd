@@ -46,8 +46,6 @@
     };
   }
   const SAVE_CAT = {key:'tiet_kiem', name:'Tiết kiệm', icon:'🐷', color:'#B8892A'};
-  const PALETTE_COLORS = ['#F0899E','#C9536B','#F2B6B0','#B79CD9','#E0965A','#C9A27A','#E8B94B','#8FB3D9','#A9764A','#E8D06A','#D98A73','#8FCBB0','#C97FB0','#B5A79C','#5E9A78','#5FAFA0','#D4AF37','#E17497','#B8925A'];
-  function randColor(){ return PALETTE_COLORS[Math.floor(Math.random()*PALETTE_COLORS.length)]; }
   function makeCatKey(){ return 'c_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 
   const STORAGE_KEY = 'finance-data-v2';
@@ -60,22 +58,24 @@
   let dailyFoodBudget = DEFAULT_DAILY_FOOD_BUDGET;
   let openWishlistHistoryId = null;
   let openWishlistSaveFormId = null;
-  let pendingType = 'income', pendingCategory = null;
+  let pendingType = 'expense', pendingCategory = null;
   let dashMonth = new Date();
 
   function expenseCats(){ return data.categories.expense; }
   function incomeCats(){ return data.categories.income; }
-  function allCats(){ return [...data.categories.expense, ...data.categories.income, SAVE_CAT]; }
+  function allCats(){ return [...data.categories.expense, ...data.categories.income]; }
   function catByKey(k){ return allCats().find(c=>c.key===k); }
   function catsForType(type){
     if(type==='income') return incomeCats();
     if(type==='expense') return expenseCats();
-    return [SAVE_CAT];
+    return [];
   }
 
   function fmtVND(n){ return (Math.round(n)||0).toLocaleString('vi-VN') + ' đ'; }
   function pad(n){ return String(n).padStart(2,'0'); }
   function todayISO(){ const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+  function isoToDDMMYYYY(isoStr){ if(!isoStr) return ''; const [y,m,d]=isoStr.split('-'); return `${d}/${m}/${y}`; }
+  function ddmmyyyyToISO(ddmmyyyyStr){ if(!ddmmyyyyStr) return todayISO(); const parts=ddmmyyyyStr.split('/'); if(parts.length!==3) return todayISO(); const [d,m,y]=parts; return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; }
   function monthKey(dateStr){ return dateStr.slice(0,7); }
   function monthKeyOf(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}`; }
   function monthLabel(key){
@@ -473,11 +473,13 @@
       row.className = 'tx-row';
       const sign = t.type==='income' ? '+' : (t.type==='expense' ? '−' : (t.type==='save_in' ? '→' : '←'));
       const cls = t.type==='income' ? 'pos' : (t.type==='expense' ? 'neg' : 'gold');
+      const title = t.title || cat.name;
+      const note = t.note ? ` · ${escapeHtml(t.note)}` : '';
       row.innerHTML = `
         <div class="tx-icon" style="background:${cat.color}33;">${cat.icon}</div>
         <div class="tx-info">
-          <div class="t-name">${escapeHtml(t.note) || cat.name}</div>
-          <div class="t-meta">${cat.name} · ${dayLabel(t.date)}</div>
+          <div class="t-name">${escapeHtml(title)}</div>
+          <div class="t-meta">${cat.name} · ${dayLabel(t.date)}${note}</div>
         </div>
         <div class="tx-amt ${cls}">${sign} ${fmtVND(t.amount)}</div>
       `;
@@ -553,13 +555,16 @@
         const cat = catByKey(t.category) || {icon:'💫', color:'#eee', name:t.category};
         const sign = t.type==='income' ? '+' : (t.type==='expense' ? '−' : (t.type==='save_in' ? '→' : '←'));
         const cls = t.type==='income' ? 'pos' : (t.type==='expense' ? 'neg' : 'gold');
+        const title = t.title || cat.name;
+        const note = t.note ? `<div class="t-note" style="font-size:11px;color:var(--ink-dim);margin-top:2px;">${escapeHtml(t.note)}</div>` : '';
         const row = document.createElement('div');
         row.className = 'tx-row';
         row.innerHTML = `
           <div class="tx-icon" style="background:${cat.color}33;">${cat.icon}</div>
           <div class="tx-info">
-            <div class="t-name">${escapeHtml(t.note) || cat.name}</div>
+            <div class="t-name">${escapeHtml(title)}</div>
             <div class="t-meta">${cat.name}</div>
+            ${note}
           </div>
           <div class="tx-amt ${cls}">${sign} ${fmtVND(t.amount)}</div>
         `;
@@ -816,7 +821,7 @@
     if(!name){ nameInp.style.borderColor='var(--rose)'; nameInp.focus(); return; }
     const icon = iconInp.value.trim() || (type==='expense'?'🏷️':'💰');
     const key = makeCatKey();
-    const cat = {key, name, icon, color:randColor()};
+    const cat = {key, name, icon, color:'#A0A0A0'};
     (type==='expense' ? expenseCats() : incomeCats()).push(cat);
     if(type==='expense' && budgetInp){
       const b = Number(budgetInp.value)||0;
@@ -949,6 +954,7 @@
   const categoryField = document.getElementById('categoryField');
   const txAmount = document.getElementById('tx-amount');
   const txDate = document.getElementById('tx-date');
+  const txTitle = document.getElementById('tx-title');
   const txNote = document.getElementById('tx-note');
 
   function buildPalette(){
@@ -959,21 +965,21 @@
       wrap.className = 'pan-wrap';
       const pan = document.createElement('div');
       pan.className = 'pan' + (c.key===pendingCategory ? ' active':'');
-      pan.style.background = `radial-gradient(circle at 35% 30%, ${c.color}, ${c.color})`;
-      pan.style.backgroundColor = c.color;
-      pan.textContent = c.icon;
       pan.addEventListener('click', ()=>{ pendingCategory = c.key; buildPalette(); });
-      const nm = document.createElement('div');
+      const icon = document.createElement('span');
+      icon.className = 'pan-icon';
+      icon.textContent = c.icon;
+      const nm = document.createElement('span');
       nm.className = 'pan-name';
       nm.textContent = c.name;
-      wrap.appendChild(pan); wrap.appendChild(nm);
+      pan.appendChild(icon);
+      pan.appendChild(nm);
+      wrap.appendChild(pan);
       paletteGrid.appendChild(wrap);
     });
     const chosen = catByKey(pendingCategory);
     document.getElementById('categoryChosenName').textContent = chosen ? `Đã chọn: ${chosen.icon} ${chosen.name}` : '';
-    categoryField.style.display = (cats.length<=1 && pendingType!=='expense' && pendingType!=='income') ? 'none' : 'block';
-    if(pendingType==='save_in' || pendingType==='save_out'){ categoryField.style.display='none'; pendingCategory = SAVE_CAT.key; }
-    else categoryField.style.display='block';
+    categoryField.style.display = (cats.length<=1) ? 'none' : 'block';
   }
 
   typeSeg.querySelectorAll('button').forEach(btn=>{
@@ -991,12 +997,14 @@
     editingTxId = tx ? tx.id : null;
     document.getElementById('txModalTitle').textContent = tx ? 'Sửa giao dịch' : 'Thêm giao dịch';
     document.getElementById('txDeleteBtn').style.display = tx ? 'block' : 'none';
-    pendingType = tx ? tx.type : 'income';
+    pendingType = tx ? tx.type : 'expense';
+    if(pendingType==='save_in' || pendingType==='save_out'){ pendingType = 'expense'; }
     pendingCategory = tx ? tx.category : (catsForType(pendingType)[0] ? catsForType(pendingType)[0].key : null);
     typeSeg.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b.dataset.type===pendingType));
     buildPalette();
     txAmount.value = tx ? tx.amount : '';
-    txDate.value = tx ? tx.date : todayISO();
+    txDate.value = tx ? isoToDDMMYYYY(tx.date) : isoToDDMMYYYY(todayISO());
+    txTitle.value = tx ? (tx.title||'') : '';
     txNote.value = tx ? (tx.note||'') : '';
     txAmount.style.borderColor = 'var(--border-strong)';
     txOverlay.classList.add('open');
@@ -1008,16 +1016,18 @@
   document.getElementById('txSaveBtn').addEventListener('click', ()=>{
     const amount = Number(txAmount.value);
     if(!amount || amount<=0){ txAmount.style.borderColor='var(--rose)'; txAmount.focus(); return; }
-    if((pendingType==='expense'||pendingType==='income') && !pendingCategory){
+    const title = txTitle.value.trim();
+    if(!title){ txTitle.style.borderColor='var(--rose)'; txTitle.focus(); return; }
+    if(!pendingCategory){
       alert('Bạn chưa có danh mục nào cho loại này. Hãy vào Cài đặt để thêm danh mục trước.');
       return;
     }
-    const date = txDate.value || todayISO();
+    const date = ddmmyyyyToISO(txDate.value) || todayISO();
     const rec = {
       id: editingTxId || ('tx_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)),
       type: pendingType,
       category: pendingCategory,
-      amount, date,
+      amount, date, title,
       note: txNote.value.trim(),
     };
     if(editingTxId){
@@ -1043,6 +1053,7 @@
     persist(); closeTxModal(); renderAll();
   });
   txAmount.addEventListener('input', ()=> txAmount.style.borderColor='var(--border-strong)');
+  txTitle.addEventListener('input', ()=> txTitle.style.borderColor='var(--border-strong)');
 
   const wishOverlay = document.getElementById('wishOverlay');
   const wName = document.getElementById('w-name');
@@ -1088,5 +1099,15 @@
   });
   [wName, wPrice].forEach(inp=> inp.addEventListener('input', ()=> inp.style.borderColor='var(--border-strong)'));
 
-  loadData();
+  function initializeExpenses() {
+    loadData();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.gpxAuth && window.gpxAuth.currentUser) {
+      initializeExpenses();
+      return;
+    }
+    document.addEventListener('gpx-ready', initializeExpenses, { once: true });
+  });
 })();

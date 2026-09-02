@@ -113,12 +113,51 @@
         todoData.byDate = parsed.byDate || {};
       }catch(e){ todoData = { general: emptyQuadrants(), byDate:{} }; }
     }
+    rolloverUnfinishedTasks();
     renderTodoPanel();
   }
   let todoSaveTimer = null;
   function persistTodos(){
     clearTimeout(todoSaveTimer);
     todoSaveTimer = setTimeout(()=>{ storageSetRaw('todo-matrix-v1', JSON.stringify(todoData)); }, 250);
+  }
+
+  function rolloverUnfinishedTasks(){
+    const today = fmtISO(new Date());
+    const todayBucket = todoData.byDate[today] || emptyQuadrants();
+    if(!todoData.byDate[today]) todoData.byDate[today] = todayBucket;
+    
+    const datesToProcess = Object.keys(todoData.byDate).filter(dateKey => dateKey < today);
+    
+    for(const oldDate of datesToProcess){
+      const oldBucket = todoData.byDate[oldDate];
+      if(!oldBucket) continue;
+      
+      for(const qkey of QKEYS){
+        const oldTasks = oldBucket[qkey] || [];
+        const unfinishedTasks = [];
+        const finishedTasks = [];
+        
+        for(const task of oldTasks){
+          if(task.done){
+            finishedTasks.push(task);
+          } else {
+            unfinishedTasks.push(task);
+          }
+        }
+        
+        for(const task of unfinishedTasks){
+          if(!task.rolledFrom){
+            task.rolledFrom = oldDate;
+          }
+          todayBucket[qkey].push(task);
+        }
+        
+        oldBucket[qkey] = finishedTasks;
+      }
+    }
+    
+    persistTodos();
   }
 
   function currentTodoBucket(){
@@ -167,9 +206,10 @@
       items.forEach(t=>{
         const row = document.createElement('div');
         row.className = 'q-item' + (t.done ? ' done':'');
+        const rolledBadge = t.rolledFrom ? `<span class="rolled-badge">⏰ Từ ${t.rolledFrom}</span>` : '';
         row.innerHTML = `
           <input type="checkbox" ${t.done?'checked':''}>
-          <div class="q-text">${escapeHtml(t.text)}</div>
+          <div class="q-text">${escapeHtml(t.text)}${rolledBadge}</div>
           <div class="q-del">✕</div>
         `;
         row.querySelector('input').addEventListener('change', ()=> toggleTodo(qk, t.id));
@@ -624,8 +664,18 @@
     scrollEl.scrollTop = Math.max(0, (mins/60*HOUR_H) - 160);
   }
 
-  buildSwatches();
-  loadEvents().then(()=> scrollToNow());
-  loadTodos();
-  setInterval(renderGridBody, 60000);
+  function initializeCalendar() {
+    buildSwatches();
+    loadEvents().then(()=> scrollToNow());
+    loadTodos();
+    setInterval(renderGridBody, 60000);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.gpxAuth && window.gpxAuth.currentUser) {
+      initializeCalendar();
+      return;
+    }
+    document.addEventListener('gpx-ready', initializeCalendar, { once: true });
+  });
 })();

@@ -593,5 +593,15 @@
     }
   });
 
-  loadGoals().then(renderAll);
+  function initializeGoals() {
+    loadGoals().then(renderAll);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.gpxAuth && window.gpxAuth.currentUser) {
+      initializeGoals();
+      return;
+    }
+    document.addEventListener('gpx-ready', initializeGoals, { once: true });
+  });
 })();

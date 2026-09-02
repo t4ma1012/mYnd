@@ -254,19 +254,31 @@
   .seg4 button:last-child{border-right:none;}
   .seg4 button.active{background:var(--gpx-accent);color:var(--gpx-accent-ink);}
 
-  /* palette (eyeshadow style category picker) */
+  /* palette (compact chip-style category picker) */
   .palette-case{
     background:var(--bg-soft);border:1px solid var(--border);border-radius:14px;padding:12px;
   }
-  .palette-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;}
-  .pan{
-    aspect-ratio:1;border-radius:9px;cursor:pointer;position:relative;border:2px solid rgba(255,255,255,0.6);
-    box-shadow:inset 0 -3px 5px rgba(0,0,0,0.12), inset 0 2px 3px rgba(255,255,255,0.5), 0 1px 2px rgba(0,0,0,0.08);
-    display:flex;align-items:center;justify-content:center;font-size:14px;
+  .palette-grid{
+    display:flex;flex-wrap:wrap;gap:8px;align-items:center;
   }
-  .pan.active{outline:2px solid var(--ink);outline-offset:2px;}
-  .pan-name{font-size:9px;text-align:center;color:var(--ink-dim);margin-top:3px;line-height:1.15;}
-  .pan-wrap{display:flex;flex-direction:column;}
+  .pan{
+    display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;cursor:pointer;
+    border:1.5px solid var(--border-soft);background:var(--surface-soft);color:var(--ink-dim);
+    font-size:13px;font-weight:500;transition:all 200ms ease;white-space:nowrap;
+  }
+  .pan:hover{
+    border-color:var(--border);background:var(--surface);
+  }
+  .pan.active{
+    border-color:var(--gpx-accent);background:rgba(122,165,248,0.1);color:var(--gpx-accent);font-weight:600;
+  }
+  .pan-icon{
+    font-size:16px;flex-shrink:0;
+  }
+  .pan-name{
+    font-size:inherit;margin:0;
+  }
+  .pan-wrap{display:contents;}
 
   .modal-actions{display:flex;gap:8px;margin-top:20px;}
   .modal-actions button{
@@ -640,10 +652,8 @@
 
     <div class="field">
       <div class="seg4" id="typeSeg">
-        <button type="button" data-type="income" class="active">Thu</button>
-        <button type="button" data-type="expense">Chi</button>
-        <button type="button" data-type="save_in">Nạp T.Kiệm</button>
-        <button type="button" data-type="save_out">Rút T.Kiệm</button>
+        <button type="button" data-type="expense" class="active">Chi</button>
+        <button type="button" data-type="income">Thu</button>
       </div>
     </div>
 
@@ -662,13 +672,18 @@
       </div>
       <div class="field">
         <label>Ngày</label>
-        <input type="date" id="tx-date">
+        <input type="text" id="tx-date" placeholder="dd/mm/yyyy">
       </div>
     </div>
 
     <div class="field">
+      <label>Tên giao dịch</label>
+      <input type="text" id="tx-title" placeholder="VD: Mua son MAC">
+    </div>
+
+    <div class="field">
       <label>Ghi chú (tuỳ chọn)</label>
-      <input type="text" id="tx-note" placeholder="VD: Mua son MAC ở Sephora">
+      <input type="text" id="tx-note" placeholder="VD: Sephora lúc 14h">
     </div>
 
     <div class="modal-actions">

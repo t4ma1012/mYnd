@@ -63,8 +63,6 @@ body > *:not([data-gpx-chrome]){
   overflow:hidden;
 }
 
-html.gpx-auth-checking body > *:not([data-gpx-chrome]),
-html.gpx-logged-out body > *:not([data-gpx-chrome]),
 html.gpx-authed body > *:not([data-gpx-chrome]){
   visibility:visible;
   height:auto;
@@ -78,7 +76,7 @@ html.gpx-authed body > *:not([data-gpx-chrome]){
   font-family:'Inter',sans-serif; padding:20px;
 }
 html.gpx-logged-out #gpx-authgate{ display:flex; }
-#gpx-authgate.hidden{display:none;}
+#gpx-authgate.hidden{display:none !important;}
 
 /* ---------- INFRA ERROR OVERLAY ---------- */
 #gpx-infra-error{

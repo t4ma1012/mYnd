@@ -805,5 +805,15 @@
     }
   });
 
-  loadData();
+  function initializeTutoring() {
+    loadData();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.gpxAuth && window.gpxAuth.currentUser) {
+      initializeTutoring();
+      return;
+    }
+    document.addEventListener('gpx-ready', initializeTutoring, { once: true });
+  });
 })();
