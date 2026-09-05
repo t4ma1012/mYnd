@@ -53,7 +53,7 @@
   const TRANSACTIONS_KEY = 'finance-transactions-v1';
   const BUDGET_LIMITS_KEY = 'finance-budget-limit-v1';
   const DEFAULT_DAILY_FOOD_BUDGET = 80000;
-  let data = { transactions: [], wishlist: [], categoryBudgets:{}, planPeriodStart: null };
+  let data = { transactions: [], wishlist: [], categoryBudgets:{}, planPeriodStart: null, monthlySavingsTarget: {}, savingsActual: {}, savingsLog: {} };
   let editingTxId = null, editingWishId = null;
   let dailyFoodBudget = DEFAULT_DAILY_FOOD_BUDGET;
   let openWishlistHistoryId = null;
@@ -105,6 +105,56 @@
     }
     if(!data.categoryBudgets || typeof data.categoryBudgets!=='object') data.categoryBudgets = {};
     if(data.planPeriodStart===undefined) data.planPeriodStart = null;
+    if(!data.monthlySavingsTarget || typeof data.monthlySavingsTarget!=='object') data.monthlySavingsTarget = {};
+    if(!data.savingsActual || typeof data.savingsActual!=='object') data.savingsActual = {};
+    if(!data.savingsLog || typeof data.savingsLog!=='object') data.savingsLog = {};
+  }
+
+  function getSavingsActualForMonth(monthKeyValue){
+    const savingsMap = data.savingsActual || {};
+    const normalizedMonth = monthKeyValue ? String(monthKeyValue).slice(0, 7) : monthKeyOf(new Date());
+    const explicit = Number(savingsMap[normalizedMonth]);
+    if(Number.isFinite(explicit) && explicit >= 0){ return explicit; }
+    return 0;
+  }
+
+  function addSavingsDeposit(monthKeyValue, amount, note=''){
+    const normalizedMonth = monthKeyValue ? String(monthKeyValue).slice(0, 7) : monthKeyOf(new Date());
+    const value = Number(amount || 0);
+    if(!Number.isFinite(value) || value <= 0) return false;
+    if(!data.savingsActual || typeof data.savingsActual !== 'object') data.savingsActual = {};
+    if(!data.savingsLog || typeof data.savingsLog !== 'object') data.savingsLog = {};
+    data.savingsActual[normalizedMonth] = (Number(data.savingsActual[normalizedMonth]) || 0) + value;
+    const entry = { date: todayISO(), amount: value, note: String(note || '').trim() };
+    const monthLog = Array.isArray(data.savingsLog[normalizedMonth]) ? data.savingsLog[normalizedMonth] : [];
+    monthLog.push(entry);
+    data.savingsLog[normalizedMonth] = monthLog;
+    persist();
+    return true;
+  }
+
+  function getMonthlySavingsTargetForMonth(monthKeyValue){
+    const targetMap = data.monthlySavingsTarget || {};
+    const normalizedMonth = monthKeyValue ? String(monthKeyValue).slice(0, 7) : monthKeyOf(new Date());
+    const explicit = Number(targetMap[normalizedMonth]);
+    if(Number.isFinite(explicit) && explicit >= 0){ return explicit; }
+    const previousKeys = Object.keys(targetMap)
+      .filter(key => key && key <= normalizedMonth)
+      .sort();
+    if(!previousKeys.length) return 0;
+    const latestKey = previousKeys[previousKeys.length - 1];
+    const fallback = Number(targetMap[latestKey]);
+    return Number.isFinite(fallback) && fallback >= 0 ? fallback : 0;
+  }
+
+  function setMonthlySavingsTarget(monthKeyValue, amount){
+    const normalizedMonth = monthKeyValue ? String(monthKeyValue).slice(0, 7) : monthKeyOf(new Date());
+    const value = Number(amount || 0);
+    if(!Number.isFinite(value) || value < 0) return false;
+    if(!data.monthlySavingsTarget || typeof data.monthlySavingsTarget !== 'object') data.monthlySavingsTarget = {};
+    data.monthlySavingsTarget[normalizedMonth] = value;
+    persist();
+    return true;
   }
 
   function safeJsonParse(value, fallback){
@@ -193,16 +243,17 @@
   function planPeriodTx(){
     return data.planPeriodStart ? data.transactions.filter(t=>t.date>=data.planPeriodStart) : data.transactions;
   }
-  function computePlanStats(){
-    const tx = planPeriodTx();
+  function computePlanStats(monthKeyValue = monthKeyOf(dashMonth)){
+    const mk = monthKeyValue || monthKeyOf(dashMonth);
+    const tx = data.transactions.filter(t => monthKey(t.date) === mk);
     const income = tx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-    const savedIn = tx.filter(t=>t.type==='save_in').reduce((s,t)=>s+t.amount,0);
-    const savedOut = tx.filter(t=>t.type==='save_out').reduce((s,t)=>s+t.amount,0);
-    const saved = savedIn - savedOut;
     const expense = tx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-    const allowance = income - saved;
+    const actualSaved = getSavingsActualForMonth(mk);
+    const target = getMonthlySavingsTargetForMonth(mk);
+    const allowance = income - actualSaved;
     const leftover = allowance - expense;
-    return {income, saved, expense, allowance, leftover};
+    const shortfall = Math.max(0, target - actualSaved);
+    return {income, target, actualSaved, expense, allowance, leftover, shortfall, monthKey: mk};
   }
   function overBudgetCategories(mk){
     return expenseCats().map(c=>{
@@ -229,12 +280,14 @@
 
   function renderDashboard(){
     const t = totals();
+    const mk = monthKeyOf(dashMonth);
+    const plan = computePlanStats(mk);
+
     document.getElementById('sumBalance').textContent = fmtVND(t.balance);
     document.getElementById('sumIncome').textContent = fmtVND(t.income);
     document.getElementById('sumExpense').textContent = fmtVND(t.expense);
-    document.getElementById('sumSavings').textContent = fmtVND(t.savingsPot);
+    document.getElementById('sumSavings').textContent = fmtVND(plan.actualSaved);
 
-    const mk = monthKeyOf(dashMonth);
     document.getElementById('dashMonthLabel').textContent = monthLabel(mk);
     const monthIncome = data.transactions.filter(x=>x.type==='income' && monthKey(x.date)===mk).reduce((s,x)=>s+x.amount,0);
     const monthExpense = data.transactions.filter(x=>x.type==='expense' && monthKey(x.date)===mk).reduce((s,x)=>s+x.amount,0);
@@ -263,21 +316,46 @@
   }
 
   function renderPlanCard(){
-    const stats = computePlanStats();
-    document.getElementById('planPeriodLabel').textContent = data.planPeriodStart
-      ? `theo dõi từ ${fmtDateVN(data.planPeriodStart)}`
-      : 'theo dõi từ giao dịch đầu tiên';
+    const mk = monthKeyOf(dashMonth);
+    const stats = computePlanStats(mk);
+    const planHint = document.getElementById('planHint');
+    const currentMonthKey = monthKeyOf(new Date());
+    const isCurrentMonth = mk === currentMonthKey;
+    const savingsProgressFill = document.getElementById('planSavedProgressFill');
+    const savingsProgressWrap = document.getElementById('planSavedProgress');
+
+    document.getElementById('planPeriodLabel').textContent = monthLabel(mk);
     document.getElementById('planIncome').textContent = fmtVND(stats.income);
-    document.getElementById('planSavedAmt').textContent = fmtVND(stats.saved);
+    document.getElementById('planSavedAmt').textContent = fmtVND(stats.target);
+    document.getElementById('planActualSaved').textContent = fmtVND(stats.actualSaved);
     document.getElementById('planAllowance').textContent = fmtVND(stats.allowance);
     document.getElementById('planSpent').textContent = fmtVND(stats.expense);
     document.getElementById('planLeftover').textContent = fmtVND(stats.leftover);
+
+    const targetProgress = stats.target > 0 ? Math.min(100, (stats.actualSaved / stats.target) * 100) : 0;
+    if(savingsProgressFill){ savingsProgressFill.style.width = `${targetProgress}%`; }
+    if(savingsProgressWrap){ savingsProgressWrap.style.display = stats.target > 0 ? 'block' : 'none'; }
+
     const line = document.getElementById('planLeftoverLine');
     line.classList.toggle('over', stats.leftover<0);
     const bar = document.getElementById('planBar');
     const pct = stats.allowance>0 ? Math.min(100, (stats.expense/stats.allowance)*100) : (stats.expense>0?100:0);
     bar.style.width = pct+'%';
     bar.style.background = stats.leftover<0 ? 'linear-gradient(90deg,#E1607E,#B8425E)' : 'linear-gradient(90deg,#8FCBB0,#5E9A78)';
+
+    if(stats.leftover < 0){
+      const shortfall = Math.abs(stats.leftover);
+      planHint.textContent = `⚠ Đang thâm hụt ${fmtVND(shortfall)} so với mục tiêu tiết kiệm — cần thu nhập thêm hoặc giảm chi tiêu để đạt mục tiêu tháng này.`;
+      planHint.style.color = 'var(--rose)';
+    } else if(!isCurrentMonth && stats.actualSaved < stats.target && stats.target > 0){
+      const shortfall = stats.target - stats.actualSaved;
+      planHint.textContent = `⚠ Còn thiếu ${fmtVND(shortfall)} để đạt mục tiêu tiết kiệm tháng này.`;
+      planHint.style.color = 'var(--gold)';
+    } else {
+      const leftToSpend = stats.leftover >= 0 ? fmtVND(stats.leftover) : fmtVND(Math.abs(stats.leftover));
+      planHint.textContent = `💡 Mục tiêu tiết kiệm ${monthLabel(mk)} là ${fmtVND(stats.target)}. Bạn còn ${leftToSpend} để chi mà vẫn đạt mục tiêu.`;
+      planHint.style.color = 'var(--ink-dim)';
+    }
   }
 
   function resetPlanPeriod(){
@@ -687,15 +765,15 @@
     const monthTx = data.transactions.filter(t=>monthKey(t.date)===mk);
     const income = monthTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
     const expense = monthTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-    const saveIn = monthTx.filter(t=>t.type==='save_in').reduce((s,t)=>s+t.amount,0);
-    const saveOut = monthTx.filter(t=>t.type==='save_out').reduce((s,t)=>s+t.amount,0);
-    const allowance = income - (saveIn - saveOut);
+    const actualSaved = getSavingsActualForMonth(mk);
+    const target = getMonthlySavingsTargetForMonth(mk);
+    const allowance = income - actualSaved;
     const leftover = allowance - expense;
 
     overviewEl.innerHTML = `
       <div class="card sum-card income"><div class="icon">📥</div><div class="label">Tổng thu tháng</div><div class="amount">${fmtVND(income)}</div></div>
       <div class="card sum-card expense"><div class="icon">📤</div><div class="label">Tổng chi tháng</div><div class="amount">${fmtVND(expense)}</div></div>
-      <div class="card sum-card savings"><div class="icon">🐷</div><div class="label">Tiết kiệm ròng tháng</div><div class="amount">${fmtVND(saveIn-saveOut)}</div></div>
+      <div class="card sum-card savings"><div class="icon">🐷</div><div class="label">Đã chuyển vào tiết kiệm</div><div class="amount">${fmtVND(actualSaved)}</div></div>
       <div class="card sum-card balance"><div class="icon">🎯</div><div class="label">${leftover<0?'Chi vượt thu tháng này':'Còn dư sau chi tiêu'}</div><div class="amount" style="color:${leftover<0?'var(--rose)':'var(--sage)'}">${fmtVND(leftover)}</div></div>
     `;
 
@@ -765,7 +843,13 @@
     const expEl = document.getElementById('expenseCatList');
     const incEl = document.getElementById('incomeCatList');
     const dailyBudgetInput = document.getElementById('dailyFoodBudgetInput');
+    const monthlyTargetInput = document.getElementById('monthlySavingsTargetInput');
+    const monthlyTargetMonth = document.getElementById('monthlySavingsTargetMonth');
+    const currentMonth = monthKeyOf(new Date());
+
     if(dailyBudgetInput) dailyBudgetInput.value = String(getDailyFoodBudget());
+    if(monthlyTargetMonth) monthlyTargetMonth.textContent = monthLabel(currentMonth);
+    if(monthlyTargetInput) monthlyTargetInput.value = String(getMonthlySavingsTargetForMonth(currentMonth));
     if(!expEl) return;
     expEl.innerHTML = '';
     expenseCats().forEach(c=>{
@@ -805,6 +889,50 @@
       row.querySelector('.del-x').addEventListener('click', ()=> deleteCategory('income', c.key));
       incEl.appendChild(row);
     });
+  }
+
+  function bindSavingsDepositForm(){
+    const form = document.getElementById('savingsDepositForm');
+    const amountInput = document.getElementById('savingsAmountInput');
+    const noteInput = document.getElementById('savingsNoteInput');
+    const saveBtn = document.getElementById('saveSavingsDepositBtn');
+    const cancelBtn = document.getElementById('cancelSavingsDepositBtn');
+    const triggerBtn = document.getElementById('addSavingsDepositBtn');
+
+    if(!form || !amountInput || !noteInput || !saveBtn || !cancelBtn || !triggerBtn) return;
+
+    triggerBtn.onclick = () => {
+      const isHidden = form.style.display === 'none';
+      form.style.display = isHidden ? 'block' : 'none';
+      if(isHidden){
+        noteInput.value = '';
+        amountInput.value = '';
+        setTimeout(()=> amountInput.focus(), 0);
+      }
+    };
+
+    cancelBtn.onclick = () => {
+      form.style.display = 'none';
+      amountInput.value = '';
+      noteInput.value = '';
+    };
+
+    saveBtn.onclick = () => {
+      const amount = Number(amountInput.value || 0);
+      if(!Number.isFinite(amount) || amount <= 0){
+        showToast('⚠️ Vui lòng nhập số tiền hợp lệ để nạp tiết kiệm.');
+        amountInput.focus();
+        return;
+      }
+      const month = monthKeyOf(dashMonth);
+      addSavingsDeposit(month, amount, noteInput.value.trim());
+      form.style.display = 'none';
+      amountInput.value = '';
+      noteInput.value = '';
+      renderDashboard();
+      renderReport();
+      showToast(`✅ Đã nạp ${fmtVND(amount)} vào tiết kiệm ${monthLabel(month)}.`);
+    };
   }
 
   function deleteCategory(type, key){
@@ -933,6 +1061,22 @@
     showToast(`✅ Đã lưu định mức ăn uống: ${fmtVND(getDailyFoodBudget())}/ngày`);
   });
 
+  document.getElementById('saveMonthlySavingsTargetBtn').addEventListener('click', ()=>{
+    const value = Number(document.getElementById('monthlySavingsTargetInput').value || 0);
+    if(!Number.isFinite(value) || value < 0){
+      showToast('⚠️ Vui lòng nhập mục tiêu tiết kiệm hợp lệ.');
+      document.getElementById('monthlySavingsTargetInput').focus();
+      return;
+    }
+    const month = monthKeyOf(new Date());
+    setMonthlySavingsTarget(month, value);
+    renderDashboard();
+    renderSettings();
+    showToast(`✅ Đã lưu mục tiêu tiết kiệm ${monthLabel(month)}: ${fmtVND(value)}`);
+  });
+
+  bindSavingsDepositForm();
+
   document.getElementById('clearMonthTransactionsBtn').addEventListener('click', ()=>{
     const month = monthKeyOf(new Date());
     const related = data.transactions.filter(t => monthKey(t.date) === month);
@@ -954,7 +1098,7 @@
 
   document.getElementById('resetBtn').addEventListener('click', ()=>{
     if(!confirm('Xóa TOÀN BỘ dữ liệu (giao dịch, wishlist, danh mục, ngân sách)? Hành động này không thể hoàn tác — hãy xuất file sao lưu trước nếu cần.')) return;
-    data = { transactions: [], wishlist: [], categoryBudgets:{}, planPeriodStart: null };
+    data = { transactions: [], wishlist: [], categoryBudgets:{}, planPeriodStart: null, monthlySavingsTarget: {}, savingsActual: {}, savingsLog: {} };
     dailyFoodBudget = DEFAULT_DAILY_FOOD_BUDGET;
     ensureDataShape();
     persist();

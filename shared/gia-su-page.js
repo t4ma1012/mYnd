@@ -157,6 +157,11 @@
     const [y,m,d] = iso.split('-');
     return `${d}/${m}/${y}`;
   }
+  function compareIsoDateStrings(a, b){
+    const left = String(a || '');
+    const right = String(b || '');
+    return left.localeCompare(right);
+  }
   function statusInfo(name){
     return APP_STATUSES.find(s=>s.name===name) || APP_STATUSES[0];
   }
@@ -637,7 +642,7 @@
     if(cls.sessions.length===0){
       html += '<div class="empty-state">Chưa có buổi dạy nào.</div>';
     } else {
-      cls.sessions.slice().sort((a,b)=> (b.date||'').localeCompare(a.date||'')).forEach(ses=>{
+      cls.sessions.slice().sort((a,b)=> compareIsoDateStrings(a.date, b.date)).forEach(ses=>{
         const amt = sessionAmount(cls, ses);
         const isPaid = ses.payment === 'Đã nhận';
         html += `
@@ -809,7 +814,11 @@
     document.getElementById('sessionModalTitle').textContent = ses ? 'Sửa buổi dạy' : 'Thêm buổi dạy — ' + cls.name;
     document.getElementById('sessionDeleteBtn').style.display = ses ? 'block' : 'none';
     document.getElementById('sessionSaveBtn').style.background = cls.color;
-    document.getElementById('sf-date').value = ses ? ses.date : new Date().toISOString().slice(0,10);
+    if (window.DateInput && typeof window.DateInput.setValue === 'function') {
+      window.DateInput.setValue(document.getElementById('sf-date'), ses ? ses.date : new Date().toISOString().slice(0,10));
+    } else {
+      document.getElementById('sf-date').value = ses ? ses.date : new Date().toISOString().slice(0,10);
+    }
     document.getElementById('sf-minutes').value = ses ? (ses.minutes || cls.minutesPerSession || cls.duration) : (cls.minutesPerSession || cls.duration || 120);
     document.getElementById('sf-content').value = ses ? ses.content : '';
     document.getElementById('sf-note').value = ses ? ses.note : '';
@@ -836,8 +845,9 @@
   document.getElementById('sessionSaveBtn').addEventListener('click', ()=>{
     const cls = db.classes.find(c=>c.id===sessionEditing.classId);
     const present = Array.from(document.querySelectorAll('#sf-students input:checked')).map(i=>i.value);
+    const rawDate = window.DateInput && typeof window.DateInput.getValue === 'function' ? window.DateInput.getValue(document.getElementById('sf-date')) : document.getElementById('sf-date').value;
     const payload = {
-      date: document.getElementById('sf-date').value || new Date().toISOString().slice(0,10),
+      date: rawDate || new Date().toISOString().slice(0,10),
       minutes: Number(document.getElementById('sf-minutes').value) || (cls.minutesPerSession || cls.duration || 120),
       present,
       content: document.getElementById('sf-content').value.trim(),

@@ -513,13 +513,36 @@
         <h4>🎯 Kế hoạch hiện tại <span id="planPeriodLabel" style="font-family:'Be Vietnam Pro';font-size:10.5px;font-weight:600;color:var(--ink-faint);margin-left:auto;"></span></h4>
         <div class="plan-stats">
           <div class="pline"><span>Tổng thu nhập (lương, bố mẹ cho, đồ pass...)</span><b id="planIncome">0 đ</b></div>
-          <div class="pline"><span>Đã để dành (tiết kiệm)</span><b id="planSavedAmt">0 đ</b></div>
+          <div class="pline"><span>Mục tiêu tiết kiệm tháng này</span><b id="planSavedAmt">0 đ</b></div>
+          <div class="pline"><span>Đã chuyển vào tiết kiệm</span><b id="planActualSaved">0 đ</b></div>
           <div class="pline"><span>Được phép chi tiêu</span><b id="planAllowance">0 đ</b></div>
           <div class="pline"><span>Đã chi</span><b id="planSpent">0 đ</b></div>
           <div class="pline leftover" id="planLeftoverLine"><span>Còn lại để chi</span><b id="planLeftover">0 đ</b></div>
         </div>
+        <div id="planSavedProgress" style="display:none;margin-top:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:11px;color:var(--ink-dim);">
+            <span>Tiến độ tiết kiệm</span>
+            <b id="planSavedProgressLabel">0%</b>
+          </div>
+          <div class="progress-track" style="height:8px;border-radius:999px;overflow:hidden;"><div class="progress-fill" id="planSavedProgressFill" style="width:0%;height:100%;background:linear-gradient(90deg,#F3C56A,#D8A55A);"></div></div>
+        </div>
         <div class="progress-track" style="margin-top:12px;"><div class="progress-fill" id="planBar" style="width:0%"></div></div>
-        <div class="hint" style="margin-top:10px;">💡 Số này tự cộng từ các giao dịch bạn ghi trong Sổ thu chi (mục Thu nhập và Nạp/Rút tiết kiệm) — không cần nhập tay. Nếu chưa có lương tháng này thì cứ tính như bình thường, chi nhiều hơn thu sẽ hiện số âm.</div>
+        <div class="hint" id="planHint" style="margin-top:10px;">💡 Mục tiêu tiết kiệm được tính theo tháng và sử dụng giá trị bạn nhập trong Cài đặt.</div>
+        <button id="addSavingsDepositBtn" style="margin-top:12px;border:1px solid var(--border-strong);background:var(--sage-soft);color:var(--ink);padding:9px 16px;border-radius:10px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Be Vietnam Pro';">+ Đã chuyển vào tiết kiệm</button>
+        <div id="savingsDepositForm" style="display:none;margin-top:12px;padding:12px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface-soft);">
+          <div class="field" style="margin-bottom:8px;">
+            <label>Số tiền đã chuyển</label>
+            <input id="savingsAmountInput" type="number" min="0" step="1000" placeholder="2000000" style="width:100%;padding:10px 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);">
+          </div>
+          <div class="field" style="margin-bottom:8px;">
+            <label>Ghi chú (tùy chọn)</label>
+            <input id="savingsNoteInput" type="text" placeholder="Lương tháng 9" style="width:100%;padding:10px 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);">
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button id="saveSavingsDepositBtn" class="btn btn-solid" style="flex:1;padding:10px 12px;border:none;border-radius:10px;background:var(--sage);color:var(--surface);font-weight:700;cursor:pointer;">Lưu</button>
+            <button id="cancelSavingsDepositBtn" style="flex:1;padding:10px 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);color:var(--ink);font-weight:700;cursor:pointer;">Hủy</button>
+          </div>
+        </div>
         <button id="resetPlanBtn" style="margin-top:12px;border:1px solid var(--border-strong);background:var(--surface);color:var(--ink-dim);padding:9px 16px;border-radius:10px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Be Vietnam Pro';">🔄 Bắt đầu kỳ theo dõi mới</button>
       </div>
       <div class="card food-card" id="foodCard">
@@ -629,6 +652,21 @@
         <input type="text" id="newIncIcon" class="icon-input" maxlength="4" placeholder="💰">
         <input type="text" id="newIncName" placeholder="Nguồn thu mới">
         <button id="addIncCatBtn">+ Thêm</button>
+      </div>
+    </div>
+
+    <div class="card settings-block">
+      <h4>💰 Mục tiêu tiết kiệm mỗi tháng</h4>
+      <div class="settings-desc">Mỗi tháng bạn có thể đặt mục tiêu giữ lại một số tiền cố định. Ứng dụng sẽ dùng mục tiêu này để tính "Kế hoạch hiện tại" và cảnh báo khi chi vượt quá giới hạn cho phép.</div>
+      <div class="row2" style="align-items:end;">
+        <div class="field" style="margin-bottom:0;">
+          <label>Tháng hiện tại: <span id="monthlySavingsTargetMonth">—</span></label>
+          <input type="number" id="monthlySavingsTargetInput" min="0" step="10000" placeholder="2000000">
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>&nbsp;</label>
+          <button id="saveMonthlySavingsTargetBtn" class="btn btn-solid" style="width:100%;padding:10px 12px;border:none;border-radius:10px;background:var(--sage);color:var(--surface);font-weight:700;cursor:pointer;">Lưu mục tiêu</button>
+        </div>
       </div>
     </div>
 
